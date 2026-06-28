@@ -1,5 +1,6 @@
 from othellopy import __version__
 from othellopy.core import Piece
+from othellopy.game import GameResult, OthelloGame
 from othellopy.player import BasePlayer
 
 
@@ -9,6 +10,22 @@ class FirstMovePlayer(BasePlayer):
 
     def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
         return self.get_moves(board)[0]
+
+
+class LastMovePlayer(BasePlayer):
+    def __init__(self, color: Piece) -> None:
+        super().__init__(color)
+
+    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+        return self.get_moves(board)[-1]
+
+
+class InvalidMovePlayer(BasePlayer):
+    def __init__(self, color: Piece) -> None:
+        super().__init__(color)
+
+    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+        return (0, 0)
 
 
 def test_version() -> None:
@@ -87,6 +104,34 @@ def test_next_move_returns_first_valid_move() -> None:
     player = FirstMovePlayer(Piece.BLACK)
 
     assert player.next_move(_initial_board()) == (2, 3)
+
+
+def test_game_returns_result() -> None:
+    result = OthelloGame(FirstMovePlayer, LastMovePlayer).play()
+
+    assert isinstance(result, GameResult)
+    assert result.winner in (Piece.EMPTY, Piece.BLACK, Piece.WHITE)
+    assert result.black_score + result.white_score <= 64
+    assert result.black_score + result.white_score > 4
+    assert result.moves[0] == (Piece.BLACK, 2, 3)
+
+
+def test_game_ends_with_no_valid_moves() -> None:
+    result = OthelloGame(FirstMovePlayer, FirstMovePlayer).play()
+    black_player = FirstMovePlayer(Piece.BLACK)
+    white_player = FirstMovePlayer(Piece.WHITE)
+
+    assert black_player.get_moves(result.board) == []
+    assert white_player.get_moves(result.board) == []
+
+
+def test_game_rejects_invalid_move() -> None:
+    try:
+        OthelloGame(InvalidMovePlayer, FirstMovePlayer).play()
+    except ValueError:
+        return
+
+    raise AssertionError("invalid moves should raise ValueError")
 
 
 def _initial_board() -> list[list[Piece]]:

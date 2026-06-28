@@ -23,6 +23,19 @@ Board cells use `Piece.EMPTY`, `Piece.BLACK`, and `Piece.WHITE`.
 Coordinates are zero-based `(row, col)` pairs, matching `board[row][col]`.
 `next_move()` is called only when the player has at least one valid move.
 
+## Game example
+
+Pass two player classes to `OthelloGame` and call `play()`.
+
+```python
+from othellopy.game import OthelloGame
+
+result = OthelloGame(MyPlayer, MyPlayer).play()
+
+print(result.winner)
+print(result.black_score, result.white_score)
+```
+
 ## Development
 
 Create a virtual environment and install the package in editable mode:
