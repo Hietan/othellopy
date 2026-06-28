@@ -2,6 +2,22 @@
 
 Python package scaffold for Othello/Reversi-related utilities.
 
+## Google Colab
+
+Install the latest `main` branch in a Colab notebook:
+
+```python
+!pip install git+https://github.com/Hietan/othellopy.git@main
+```
+
+Then import the package:
+
+```python
+from othellopy.core import Piece
+from othellopy.game import OthelloGame
+from othellopy.player import BasePlayer
+```
+
 ## Player example
 
 Use `BasePlayer` to build your own player class.
@@ -50,6 +66,30 @@ print_board(last_turn.board)
 
 If a player returns an invalid move, the error message includes the move,
 valid moves, and the board for that turn.
+
+## Git Flow
+
+Use these branch roles:
+
+- `main`: deployment branch for Colab installs.
+- `dev`: integration branch before release.
+- `release/*`: release preparation branch.
+- `feat/*`: feature work branch.
+
+Recommended flow:
+
+```bash
+git switch dev
+git switch -c feat/my-feature
+# work and commit
+git switch dev
+git merge --no-ff feat/my-feature
+git switch -c release/v0.1.0
+# final checks
+git switch main
+git merge --no-ff release/v0.1.0
+git push origin main
+```
 
 ## Development
 
