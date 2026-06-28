@@ -11,6 +11,10 @@ class Piece(IntEnum):
     WHITE = 2
 
 
+Board = list[list[Piece]]
+Move = tuple[int, int]
+
+
 def opponent(piece: Piece) -> Piece:
     """Return the opponent color for a player piece."""
     piece = Piece(piece)

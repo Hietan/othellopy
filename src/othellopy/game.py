@@ -2,10 +2,23 @@
 
 from dataclasses import dataclass
 
-from othellopy.core import Piece
-from othellopy.player import BasePlayer, Board
+from othellopy.board import board_to_str, copy_board, initial_board
+from othellopy.core import Board, Piece
+from othellopy.player import BasePlayer
 
 MoveRecord = tuple[Piece, int, int]
+
+
+@dataclass(frozen=True)
+class TurnRecord:
+    """Information about one turn for debugging."""
+
+    color: Piece
+    board: Board
+    valid_moves: list[tuple[int, int]]
+    move: tuple[int, int] | None
+    black_score: int
+    white_score: int
 
 
 @dataclass(frozen=True)
@@ -17,6 +30,29 @@ class GameResult:
     white_score: int
     board: Board
     moves: list[MoveRecord]
+    turns: list[TurnRecord]
+
+
+class InvalidMoveError(ValueError):
+    """Raised when a player returns a move that is not valid."""
+
+    def __init__(
+        self,
+        color: Piece,
+        move: object,
+        valid_moves: list[tuple[int, int]],
+        board: Board,
+    ) -> None:
+        self.color = color
+        self.move = move
+        self.valid_moves = valid_moves
+        self.board = copy_board(board)
+        message = (
+            f"{color.name} player returned invalid move: {move!r}\n"
+            f"Valid moves: {valid_moves}\n"
+            f"{board_to_str(board)}"
+        )
+        super().__init__(message)
 
 
 class OthelloGame:
@@ -32,8 +68,9 @@ class OthelloGame:
 
     def play(self) -> GameResult:
         """Play until both players have no valid moves."""
-        board = _initial_board()
+        board = initial_board()
         moves = []
+        turns = []
         current_color = Piece.BLACK
         pass_count = 0
 
@@ -42,19 +79,23 @@ class OthelloGame:
             valid_moves = player.get_moves(board)
 
             if not valid_moves:
+                turns.append(_turn_record(current_color, board, valid_moves, None))
                 pass_count += 1
                 current_color = _next_color(current_color)
                 continue
 
             pass_count = 0
-            row, col = player.next_move(_copy_board(board))
+            move = player.next_move(copy_board(board))
+            if not _is_move(move):
+                raise InvalidMoveError(current_color, move, valid_moves, board)
+
+            row, col = move
             if not player.is_valid_move(board, row, col):
-                move = (row, col)
-                msg = f"{current_color.name} player returned invalid move: {move!r}"
-                raise ValueError(msg)
+                raise InvalidMoveError(current_color, move, valid_moves, board)
 
             _place_piece(board, player, row, col)
             moves.append((current_color, row, col))
+            turns.append(_turn_record(current_color, board, valid_moves, move))
             current_color = _next_color(current_color)
 
         black_score = _count_piece(board, Piece.BLACK)
@@ -63,23 +104,15 @@ class OthelloGame:
             winner=_winner(black_score, white_score),
             black_score=black_score,
             white_score=white_score,
-            board=_copy_board(board),
+            board=copy_board(board),
             moves=moves,
+            turns=turns,
         )
 
     def _player_for(self, color: Piece) -> BasePlayer:
         if color == Piece.BLACK:
             return self.black_player
         return self.white_player
-
-
-def _initial_board() -> Board:
-    board = [[Piece.EMPTY for _ in range(8)] for _ in range(8)]
-    board[3][3] = Piece.WHITE
-    board[3][4] = Piece.BLACK
-    board[4][3] = Piece.BLACK
-    board[4][4] = Piece.WHITE
-    return board
 
 
 def _place_piece(board: Board, player: BasePlayer, row: int, col: int) -> None:
@@ -107,5 +140,26 @@ def _winner(black_score: int, white_score: int) -> Piece:
     return Piece.EMPTY
 
 
-def _copy_board(board: Board) -> Board:
-    return [row.copy() for row in board]
+def _is_move(move: object) -> bool:
+    if not isinstance(move, tuple | list):
+        return False
+    if len(move) != 2:
+        return False
+    row, col = move
+    return isinstance(row, int) and isinstance(col, int)
+
+
+def _turn_record(
+    color: Piece,
+    board: Board,
+    valid_moves: list[tuple[int, int]],
+    move: tuple[int, int] | None,
+) -> TurnRecord:
+    return TurnRecord(
+        color=color,
+        board=copy_board(board),
+        valid_moves=valid_moves.copy(),
+        move=move,
+        black_score=_count_piece(board, Piece.BLACK),
+        white_score=_count_piece(board, Piece.WHITE),
+    )

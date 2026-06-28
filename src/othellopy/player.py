@@ -2,10 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from othellopy.core import Piece, opponent
-
-Board = list[list[Piece]]
-Move = tuple[int, int]
+from othellopy.core import Board, Move, Piece, opponent
 
 _DIRECTIONS = (
     (-1, -1),

@@ -36,6 +36,21 @@ print(result.winner)
 print(result.black_score, result.white_score)
 ```
 
+Use board helpers when debugging in notebooks.
+
+```python
+from othellopy.board import print_board
+
+print_board(result.board)
+
+last_turn = result.turns[-1]
+print(last_turn.valid_moves)
+print_board(last_turn.board)
+```
+
+If a player returns an invalid move, the error message includes the move,
+valid moves, and the board for that turn.
+
 ## Development
 
 Create a virtual environment and install the package in editable mode:
