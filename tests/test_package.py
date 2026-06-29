@@ -23,7 +23,16 @@ from othellopy.players import (
     IntermediatePlayer,
     ManualPlayer,
 )
-from othellopy.validation import validate, validate_detail
+from othellopy.validation import (
+    test_player as player_test,
+)
+from othellopy.validation import (
+    test_player_detail as player_test_detail,
+)
+from othellopy.validation import (
+    validate,
+    validate_detail,
+)
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4
@@ -425,47 +434,47 @@ def test_manual_player_retries_invalid_input() -> None:
     assert "Invalid move: '99'" in output.getvalue()
 
 
-def test_validate_accepts_valid_player() -> None:
+def test_player_accepts_valid_player() -> None:
     """Accept a valid submitted player."""
-    assert validate(FirstMovePlayer)
+    assert player_test(FirstMovePlayer)
 
 
-def test_validate_accepts_player_without_init() -> None:
+def test_player_accepts_player_without_init() -> None:
     """Accept a player that inherits BasePlayer.__init__."""
-    assert validate(NoInitPlayer)
+    assert player_test(NoInitPlayer)
 
 
-def test_validate_allows_standard_library_imports() -> None:
+def test_player_allows_standard_library_imports() -> None:
     """Allow safe standard library imports such as random."""
-    assert validate(RandomPlayer)
+    assert player_test(RandomPlayer)
 
 
-def test_validate_rejects_invalid_move_player() -> None:
+def test_player_rejects_invalid_move_player() -> None:
     """Reject players that return illegal moves."""
-    result = validate_detail(InvalidMovePlayer)
+    result = player_test_detail(InvalidMovePlayer)
 
     assert not result.passed
     assert result.errors[0].code == "illegal-move"
 
 
-def test_validate_allows_print_output() -> None:
+def test_player_allows_print_output() -> None:
     """Allow players to print while debugging in notebooks."""
-    assert validate(PrintingPlayer)
+    assert player_test(PrintingPlayer)
 
 
-def test_validate_allows_display_board() -> None:
+def test_player_allows_display_board() -> None:
     """Allow players to display boards while debugging in notebooks."""
-    assert validate(DisplayingPlayer)
+    assert player_test(DisplayingPlayer)
 
 
-def test_validate_allows_board_mutation_on_copied_board() -> None:
-    """Allow board mutation because validation passes an isolated board copy."""
-    assert validate(MutatingPlayer)
+def test_player_allows_board_mutation_on_copied_board() -> None:
+    """Allow board mutation because tests pass an isolated board copy."""
+    assert player_test(MutatingPlayer)
 
 
-def test_validate_reports_runtime_case_details() -> None:
+def test_player_reports_runtime_case_details() -> None:
     """Run a broad set of runtime board cases."""
-    result = validate_detail(FirstMovePlayer)
+    result = player_test_detail(FirstMovePlayer)
 
     assert result.passed
     case_names = {case["name"] for case in result.details["runtime_cases"]}
@@ -485,22 +494,28 @@ def test_validate_reports_runtime_case_details() -> None:
     } <= case_names
 
 
-def test_validate_rejects_runtime_errors() -> None:
-    """Reject players that raise during runtime validation."""
-    result = validate_detail(RaisingPlayer)
+def test_player_rejects_runtime_errors() -> None:
+    """Reject players that raise during runtime tests."""
+    result = player_test_detail(RaisingPlayer)
 
     assert not result.passed
     assert result.errors[0].code == "runtime-error"
 
 
-def test_validate_rejects_timeout() -> None:
+def test_player_rejects_timeout() -> None:
     """Reject players that exceed the configured time limit."""
-    result = validate_detail(SlowPlayer, max_seconds=0.001)
+    result = player_test_detail(SlowPlayer, max_seconds=0.001)
 
     assert not result.passed
     assert result.errors[0].code == "timeout"
 
 
-def test_validate_does_not_perform_static_import_checks() -> None:
+def test_player_does_not_perform_static_import_checks() -> None:
     """Leave import/package policy to the client-side static analyzer."""
-    assert validate(DormantExternalImportPlayer)
+    assert player_test(DormantExternalImportPlayer)
+
+
+def test_validate_aliases_test_player() -> None:
+    """Keep the old validation API as a compatibility alias."""
+    assert validate(FirstMovePlayer) == player_test(FirstMovePlayer)
+    assert validate_detail(FirstMovePlayer).passed

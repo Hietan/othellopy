@@ -6,7 +6,7 @@
 [![CI](https://github.com/Hietan/othellopy/actions/workflows/ci.yml/badge.svg)](https://github.com/Hietan/othellopy/actions/workflows/ci.yml)
 
 `othellopy` is a small Python package for Othello/Reversi exercises. It
-provides a board model, a game runner, move validation helpers, and sample
+provides a board model, a game runner, player test helpers, and sample
 players ranging from random play to alpha-beta search.
 
 The package is currently `0.x` alpha software. Public APIs may change before
@@ -85,37 +85,37 @@ when the player has at least one legal move.
 
 ## Runtime Player Check
 
-Use `validate()` in Google Colab to check that a custom player actually runs
+Use `test_player()` in Google Colab to check that a custom player actually runs
 correctly. This is the dynamic part of validation; browser-side static analysis
 can separately check imports and source-code rules before students run Colab.
 
 ```python
-from othellopy.validation import validate, validate_detail
+from othellopy.validation import test_player, test_player_detail
 
-if validate(MyPlayer):
-    print("OK to submit")
+if test_player(MyPlayer):
+    print("Basic player tests passed")
 else:
-    result = validate_detail(MyPlayer)
+    result = test_player_detail(MyPlayer)
     for issue in result.errors:
         print(issue.code, issue.message)
 ```
 
-The runtime validator checks that the class inherits from `BasePlayer`, can be
+The runtime player tests check that the class inherits from `BasePlayer`, can be
 constructed for black and white, returns legal moves on many board states, and
 returns within one second by default. `print()` and `display_board()` are
-allowed, so students can debug in Google Colab while running runtime validation.
+allowed, so students can debug in Google Colab while running the tests.
 
-The board passed to `next_move()` is an isolated copy during validation and game
+The board passed to `next_move()` is an isolated copy during player tests and game
 play, so accidental board edits do not change the real game state. Students
 should still treat the board as read-only because only the returned move is used.
 
-Runtime validation does not inspect source code and does not enforce import
+Runtime player tests do not inspect source code and do not enforce import
 policy. Use a separate static analyzer, for example in a Next.js client, to
 reject external packages such as `numpy` or risky APIs such as `open()`,
 `input()`, `eval()`, and `exec()`.
 
 This is a runtime screen, not a security sandbox. Evaluation servers should run
-the same runtime validation again and execute submitted players in an isolated
+the same runtime player tests again and execute submitted players in an isolated
 sandbox.
 
 ## Manual CLI Play
@@ -315,11 +315,14 @@ Fields:
 
 ### `othellopy.validation`
 
-`validate(player_class, *, max_seconds=1.0) -> bool`
-: Returns `True` when a submitted player class passes runtime checks.
+`test_player(player_class, *, max_seconds=1.0) -> bool`
+: Returns `True` when a submitted player class passes runtime player tests.
 
-`validate_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
+`test_player_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
 : Returns detailed runtime errors and runtime case details.
+
+`validate(...)` / `validate_detail(...)`
+: Compatibility aliases for `test_player(...)` and `test_player_detail(...)`.
 
 `ValidationResult`
 : Detailed validation result.

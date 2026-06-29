@@ -1,4 +1,4 @@
-"""Runtime validation helpers for student players."""
+"""Runtime test helpers for student players."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ class ValidationIssue:
 
 @dataclass(frozen=True)
 class ValidationResult:
-    """Detailed result returned by validate_detail()."""
+    """Detailed result returned by test_player_detail()."""
 
     passed: bool
     issues: list[ValidationIssue]
@@ -83,8 +83,12 @@ def validate(
     *,
     max_seconds: float = _DEFAULT_MAX_SECONDS,
 ) -> bool:
-    """Return True if player_class passes the runtime checks."""
-    return validate_detail(player_class, max_seconds=max_seconds).passed
+    """
+    Return True if player_class passes the runtime tests.
+
+    Prefer test_player() for new course materials.
+    """
+    return test_player(player_class, max_seconds=max_seconds)
 
 
 def validate_detail(
@@ -92,11 +96,33 @@ def validate_detail(
     *,
     max_seconds: float = _DEFAULT_MAX_SECONDS,
 ) -> ValidationResult:
-    """Return detailed runtime validation results for player_class."""
+    """
+    Return detailed runtime test results.
+
+    Prefer test_player_detail() for new course materials.
+    """
+    return test_player_detail(player_class, max_seconds=max_seconds)
+
+
+def _test_player(
+    player_class: type[BasePlayer],
+    *,
+    max_seconds: float = _DEFAULT_MAX_SECONDS,
+) -> bool:
+    """Return True if player_class passes the runtime player tests."""
+    return test_player_detail(player_class, max_seconds=max_seconds).passed
+
+
+def _test_player_detail(
+    player_class: type[BasePlayer],
+    *,
+    max_seconds: float = _DEFAULT_MAX_SECONDS,
+) -> ValidationResult:
+    """Return detailed runtime test results for player_class."""
     issues: list[ValidationIssue] = []
     details: dict[str, Any] = {
         "max_seconds": max_seconds,
-        "validation_kind": "runtime",
+        "validation_kind": "runtime_player_tests",
     }
 
     issues.extend(_validate_class_shape(player_class))
@@ -121,7 +147,8 @@ def _validate_class_shape(player_class: type[BasePlayer]) -> list[ValidationIssu
         return [
             ValidationIssue(
                 "not-class",
-                "validate() expects a Player class, such as validate(MyPlayer).",
+                "test_player() expects a Player class, such as "
+                "test_player(MyPlayer).",
             )
         ]
 
@@ -142,6 +169,12 @@ def _validate_class_shape(player_class: type[BasePlayer]) -> list[ValidationIssu
         )
 
     return issues
+
+
+test_player = _test_player
+test_player_detail = _test_player_detail
+test_player.__test__ = False  # type: ignore[attr-defined]
+test_player_detail.__test__ = False  # type: ignore[attr-defined]
 
 
 def _validate_runtime(
@@ -401,6 +434,8 @@ __all__ = [
     "ValidationIssue",
     "ValidationResult",
     "ValidationSeverity",
+    "test_player",
+    "test_player_detail",
     "validate",
     "validate_detail",
 ]
