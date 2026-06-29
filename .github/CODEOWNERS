@@ -1,0 +1,10 @@
+# Require Hietan review for repository changes when GitHub branch protection
+# enables "Require review from Code Owners".
+* @Hietan
+
+# Extra-sensitive project health and release files.
+/.github/ @Hietan
+/pyproject.toml @Hietan
+/uv.lock @Hietan
+/SECURITY.md @Hietan
+/LICENSE @Hietan

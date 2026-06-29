@@ -2,8 +2,8 @@ name: Publish
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -12,6 +12,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
 
     steps:
       - name: Check out repository
@@ -24,6 +26,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Run tests
+        run: uv run --extra dev pytest
+
+      - name: Run lint
+        run: uv run --extra dev ruff check .
+
+      - name: Run type check
+        run: uv run --extra dev mypy src/othellopy
 
       - name: Build package
         run: uv build

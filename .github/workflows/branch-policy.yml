@@ -1,0 +1,66 @@
+name: Branch Policy
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  gitflow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate GitFlow branch policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          is_feature_branch() {
+            [[ "$1" == feat/* ]]
+          }
+
+          is_release_branch() {
+            [[ "$1" == release/* ]]
+          }
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.base_ref }}"
+            head="${{ github.head_ref }}"
+
+            if [[ "$base" == "dev" ]] && is_feature_branch "$head"; then
+              exit 0
+            fi
+
+            if [[ "$base" == "main" ]] && is_release_branch "$head"; then
+              exit 0
+            fi
+
+            echo "::error::Invalid GitFlow PR route: '$head' -> '$base'."
+            echo "::error::Use feat/* -> dev or release/* -> main."
+            exit 1
+          fi
+
+          branch="${GITHUB_REF_NAME}"
+          if [[ "$branch" == "main" ]]; then
+            echo "main pushes are only safe when GitHub branch protection"
+            echo "requires pull requests and maintainer approval."
+            exit 0
+          fi
+
+          if [[ "$branch" == "dev" ]] || is_feature_branch "$branch" || is_release_branch "$branch"; then
+            exit 0
+          fi
+
+          echo "::error::Invalid branch name '$branch'."
+          echo "::error::Use dev, feat/*, or release/*."
+          exit 1

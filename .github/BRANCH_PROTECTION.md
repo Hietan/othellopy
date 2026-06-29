@@ -1,0 +1,51 @@
+# GitHub Branch Protection and Rulesets
+
+Repository files can document and check GitFlow, but GitHub must enforce direct
+push rejection through branch protection or repository rulesets.
+
+Configure these settings in GitHub before treating the repository as protected.
+
+## Required Rules
+
+Create rules for `main`:
+
+- Require a pull request before merging.
+- Require at least 1 approval.
+- Require review from Code Owners.
+- Dismiss stale approvals when new commits are pushed.
+- Require status checks to pass before merging:
+  - `Branch Policy / gitflow`
+  - every `CI / test` matrix job
+- Require branches to be up to date before merging.
+- Block force pushes.
+- Block deletions.
+- Apply rules to administrators.
+- Allow only `release/*` pull requests into `main`.
+
+Create rules for `dev`:
+
+- Require a pull request before merging.
+- Require at least 1 approval.
+- Require review from Code Owners.
+- Dismiss stale approvals when new commits are pushed.
+- Require status checks to pass before merging:
+  - `Branch Policy / gitflow`
+  - every `CI / test` matrix job
+- Block force pushes.
+- Block deletions.
+- Apply rules to administrators.
+- Allow only `feat/*` pull requests into `dev`.
+
+## Branch Naming
+
+Allowed working branches:
+
+- `feat/*` for feature and maintenance work.
+- `release/*` for release preparation.
+
+Do not push directly to `main`. Do not merge `feat/*` directly into `main`.
+
+## Approval Ownership
+
+`.github/CODEOWNERS` assigns ownership to `@Hietan`. With code owner review
+enabled, pull requests require Hietan approval before merge.

@@ -1,29 +1,53 @@
 # othellopy
 
-Python package scaffold for Othello/Reversi-related utilities.
+`othellopy` is a small Python package for Othello/Reversi exercises. It
+provides a board model, a game runner, move validation helpers, and sample
+players ranging from random play to alpha-beta search.
 
-## Google Colab
+The package is currently `0.x` alpha software. Public APIs may change before
+`1.0.0`.
 
-Install the latest `main` branch in a Colab notebook:
+## Requirements
+
+- Python 3.10 or later
+- No runtime dependencies
+
+## Installation
+
+Install from PyPI:
+
+```bash
+pip install othellopy
+```
+
+Install the latest `main` branch, for example in Google Colab:
 
 ```python
 !pip install git+https://github.com/Hietan/othellopy.git@main
 ```
 
-Then import the package:
+## Quick Start
+
+Run a complete game between two sample players:
 
 ```python
-from othellopy.core import Cell
+from othellopy.board import print_board
 from othellopy.game import OthelloGame
-from othellopy.players import BasePlayer
+from othellopy.players import BeginnerPlayer, IntermediatePlayer
+
+result = OthelloGame(BeginnerPlayer, IntermediatePlayer).play()
+
+print(result.winner)
+print(result.black_score, result.white_score)
+print_board(result.board)
 ```
 
-## Player example
+## Writing a Player
 
-Use `BasePlayer` to build your own player class.
+Subclass `BasePlayer` and implement `next_move()`.
 
 ```python
-from othellopy.core import Cell
+from othellopy.core import Board, Cell, Move
 from othellopy.players import BasePlayer
 
 
@@ -31,15 +55,40 @@ class MyPlayer(BasePlayer):
     def __init__(self, color: Cell) -> None:
         super().__init__(color)
 
-    def next_move(self, board: list[list[Cell]]) -> tuple[int, int]:
+    def next_move(self, board: Board) -> Move:
         return self.get_moves(board)[0]
 ```
 
-Board cells use `Cell.EMPTY`, `Cell.BLACK`, and `Cell.WHITE`.
-Coordinates are zero-based `(row, col)` pairs, matching `board[row][col]`.
-`next_move()` is called only when the player has at least one valid move.
+Coordinates are zero-based `(row, col)` pairs. `next_move()` is called only
+when the player has at least one legal move.
 
-Use sample players when you want a ready-made baseline:
+## Manual CLI Play
+
+Use `ManualPlayer` to enter moves interactively from a terminal. Input is
+two digits in row-column order, such as `07`.
+
+```python
+from othellopy.game import OthelloGame
+from othellopy.players import BeginnerPlayer, ManualPlayer
+
+result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
+```
+
+Equivalent one-off command:
+
+```bash
+uv run python - <<'PY'
+from othellopy.game import OthelloGame
+from othellopy.players import BeginnerPlayer, ManualPlayer
+
+result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
+print(result.winner, result.black_score, result.white_score)
+PY
+```
+
+## Sample Players
+
+Import sample players from `othellopy.players`:
 
 ```python
 from othellopy.players import (
@@ -51,87 +100,172 @@ from othellopy.players import (
 ```
 
 - `BeginnerPlayer`: chooses a legal move randomly.
-- `IntermediatePlayer`: scores legal moves with a simple heuristic.
+- `IntermediatePlayer`: scores legal moves with a simple one-ply heuristic.
 - `AdvancedPlayer`: searches ahead with alpha-beta pruning.
-- `ManualPlayer`: asks for row-column input in a CLI, such as `07`.
+- `ManualPlayer`: asks for row-column input in a CLI.
 
-## Game example
+## Board Display
 
-Pass two player classes to `OthelloGame` and call `play()`.
-
-```python
-from othellopy.game import OthelloGame
-
-result = OthelloGame(MyPlayer, MyPlayer).play()
-
-print(result.winner)
-print(result.black_score, result.white_score)
-```
-
-Use board helpers when debugging in notebooks. Board output uses `⚫️` and `⚪️`
-when the output encoding supports them, and falls back to `B` and `W`
-otherwise.
+Board helpers render stones as `⚫️` and `⚪️` when the output encoding supports
+them. If the output cannot encode those emoji, display falls back to `B` and
+`W`.
 
 ```python
-from othellopy.board import print_board
+from othellopy.board import initial_board, print_board
 
-print_board(result.board)
-
-last_turn = result.turns[-1]
-print(last_turn.valid_moves)
-print_board(last_turn.board)
+print_board(initial_board())
 ```
 
-If a player returns an invalid move, that player forfeits. The returned
-`GameResult` stores the winner and the invalid move details in `result.forfeit`.
+Use `board_to_str(..., use_emoji=False)` when you need stable ASCII output.
 
-## Git Flow
+## Invalid Moves and Forfeits
 
-Use these branch roles:
+If a player returns an invalid move, the player forfeits and the opponent wins.
+The game still returns a `GameResult`.
 
-- `main`: deployment branch for Colab installs.
-- `dev`: integration branch before release.
-- `release/*`: release preparation branch.
-- `feat/*`: feature work branch.
+```python
+result = OthelloGame(MyPlayer, BeginnerPlayer).play()
 
-Recommended flow:
-
-```bash
-git switch dev
-git switch -c feat/my-feature
-# work and commit
-git switch dev
-git merge --no-ff feat/my-feature
-git switch -c release/v0.1.0
-# final checks
-git switch main
-git merge --no-ff release/v0.1.0
-git push origin main
+if result.forfeit is not None:
+    print(result.winner)
+    print(result.forfeit.color)
+    print(result.forfeit.move)
+    print(result.forfeit.valid_moves)
 ```
+
+## API Overview
+
+### `othellopy.core`
+
+`Cell`
+: `IntEnum` representing board cell values.
+
+```python
+Cell.EMPTY
+Cell.BLACK
+Cell.WHITE
+```
+
+`Board`
+: Type alias for `list[list[Cell]]`.
+
+`Move`
+: Type alias for `tuple[int, int]`.
+
+`opponent(cell: Cell) -> Cell`
+: Returns `Cell.WHITE` for `Cell.BLACK`, and `Cell.BLACK` for `Cell.WHITE`.
+  Passing `Cell.EMPTY` raises `ValueError`.
+
+### `othellopy.board`
+
+`initial_board() -> Board`
+: Returns the standard 8x8 initial Othello board.
+
+`copy_board(board: Board) -> Board`
+: Returns a row-by-row copy of a board.
+
+`board_to_str(board: Board, *, use_emoji: bool | None = None) -> str`
+: Converts a board to readable text.
+
+`print_board(board: Board, *, use_emoji: bool | None = None) -> None`
+: Prints a readable board.
+
+### `othellopy.players`
+
+`BasePlayer`
+: Base class for custom players. Provides:
+
+- `color`
+- `opponent_color`
+- `get_moves(board)`
+- `is_valid_move(board, row, col)`
+- `get_flips(board, row, col)`
+
+`BeginnerPlayer`
+: Random legal move player.
+
+`IntermediatePlayer`
+: Simple heuristic player.
+
+`AdvancedPlayer`
+: Alpha-beta search player. Accepts `depth=` in the constructor.
+
+`ManualPlayer`
+: Interactive CLI player. Accepts optional `input_func`, `output`, and
+  `use_emoji` parameters for testing or custom IO.
+
+### `othellopy.game`
+
+`OthelloGame(black_player_class, white_player_class)`
+: Runs one game between two `BasePlayer` subclasses.
+
+`GameResult`
+: Return value from `OthelloGame(...).play()`.
+
+Fields:
+
+- `winner: Cell`
+- `black_score: int`
+- `white_score: int`
+- `board: Board`
+- `moves: list[tuple[Cell, int, int]]`
+- `turns: list[TurnRecord]`
+- `forfeit: ForfeitRecord | None`
+
+`TurnRecord`
+: Per-turn debug information.
+
+Fields:
+
+- `color: Cell`
+- `board: Board`
+- `valid_moves: list[tuple[int, int]]`
+- `move: tuple[int, int] | None`
+- `black_score: int`
+- `white_score: int`
+
+`ForfeitRecord`
+: Invalid-move forfeit information.
+
+Fields:
+
+- `color: Cell`
+- `move: object`
+- `valid_moves: list[tuple[int, int]]`
+- `board: Board`
+- `message: str`
 
 ## Development
-
-Create a virtual environment and install the package in editable mode:
 
 ```bash
 uv venv
 uv pip install -e ".[dev]"
 ```
 
-Run tests:
+Run checks:
 
 ```bash
-uv run pytest
-```
-
-Run type checks:
-
-```bash
-uv run mypy src/othellopy
-```
-
-Build distributions:
-
-```bash
+uv run --extra dev ruff check .
+uv run --extra dev mypy src/othellopy
+uv run --extra dev pytest
 uv build
 ```
+
+## Contributing
+
+Contributions must follow the GitFlow rules in
+[`CONTRIBUTING.md`](CONTRIBUTING.md):
+
+- `feat/*` pull requests target `dev`.
+- `release/*` pull requests target `main`.
+- Direct pushes to `main` are not allowed.
+- Maintainer approval is required before merge.
+
+## Security
+
+Please do not report vulnerabilities in public issues. See
+[`SECURITY.md`](SECURITY.md).
+
+## License
+
+Licensed under the Apache License, Version 2.0. See [`LICENSE`](LICENSE).
