@@ -3,20 +3,20 @@
 from dataclasses import dataclass
 
 from othellopy.board import board_to_str, copy_board, initial_board
-from othellopy.core import Board, Piece
+from othellopy.core import Board, Cell
 from othellopy.player import BasePlayer
 
 _MAX_CONSECUTIVE_PASSES = 2
 _MOVE_LENGTH = 2
 
-MoveRecord = tuple[Piece, int, int]
+MoveRecord = tuple[Cell, int, int]
 
 
 @dataclass(frozen=True)
 class TurnRecord:
     """Information about one turn for debugging."""
 
-    color: Piece
+    color: Cell
     board: Board
     valid_moves: list[tuple[int, int]]
     move: tuple[int, int] | None
@@ -28,7 +28,7 @@ class TurnRecord:
 class GameResult:
     """Result returned after playing one game."""
 
-    winner: Piece
+    winner: Cell
     black_score: int
     white_score: int
     board: Board
@@ -41,7 +41,7 @@ class InvalidMoveError(ValueError):
 
     def __init__(
         self,
-        color: Piece,
+        color: Cell,
         move: object,
         valid_moves: list[tuple[int, int]],
         board: Board,
@@ -68,15 +68,15 @@ class OthelloGame:
         white_player_class: type[BasePlayer],
     ) -> None:
         """Initialize black and white players from their classes."""
-        self.black_player = black_player_class(Piece.BLACK)
-        self.white_player = white_player_class(Piece.WHITE)
+        self.black_player = black_player_class(Cell.BLACK)
+        self.white_player = white_player_class(Cell.WHITE)
 
     def play(self) -> GameResult:
         """Play until both players have no valid moves."""
         board = initial_board()
         moves = []
         turns = []
-        current_color = Piece.BLACK
+        current_color = Cell.BLACK
         pass_count = 0
 
         while pass_count < _MAX_CONSECUTIVE_PASSES:
@@ -98,13 +98,13 @@ class OthelloGame:
             if not player.is_valid_move(board, row, col):
                 raise InvalidMoveError(current_color, move, valid_moves, board)
 
-            _place_piece(board, player, row, col)
+            _place_cell(board, player, row, col)
             moves.append((current_color, row, col))
             turns.append(_turn_record(current_color, board, valid_moves, move))
             current_color = _next_color(current_color)
 
-        black_score = _count_piece(board, Piece.BLACK)
-        white_score = _count_piece(board, Piece.WHITE)
+        black_score = _count_cell(board, Cell.BLACK)
+        white_score = _count_cell(board, Cell.WHITE)
         return GameResult(
             winner=_winner(black_score, white_score),
             black_score=black_score,
@@ -114,35 +114,35 @@ class OthelloGame:
             turns=turns,
         )
 
-    def _player_for(self, color: Piece) -> BasePlayer:
-        if color == Piece.BLACK:
+    def _player_for(self, color: Cell) -> BasePlayer:
+        if color == Cell.BLACK:
             return self.black_player
         return self.white_player
 
 
-def _place_piece(board: Board, player: BasePlayer, row: int, col: int) -> None:
+def _place_cell(board: Board, player: BasePlayer, row: int, col: int) -> None:
     flips = player.get_flips(board, row, col)
     board[row][col] = player.color
     for flip_row, flip_col in flips:
         board[flip_row][flip_col] = player.color
 
 
-def _next_color(color: Piece) -> Piece:
-    if color == Piece.BLACK:
-        return Piece.WHITE
-    return Piece.BLACK
+def _next_color(color: Cell) -> Cell:
+    if color == Cell.BLACK:
+        return Cell.WHITE
+    return Cell.BLACK
 
 
-def _count_piece(board: Board, piece: Piece) -> int:
-    return sum(row.count(piece) for row in board)
+def _count_cell(board: Board, cell: Cell) -> int:
+    return sum(row.count(cell) for row in board)
 
 
-def _winner(black_score: int, white_score: int) -> Piece:
+def _winner(black_score: int, white_score: int) -> Cell:
     if black_score > white_score:
-        return Piece.BLACK
+        return Cell.BLACK
     if white_score > black_score:
-        return Piece.WHITE
-    return Piece.EMPTY
+        return Cell.WHITE
+    return Cell.EMPTY
 
 
 def _is_move(move: object) -> bool:
@@ -155,7 +155,7 @@ def _is_move(move: object) -> bool:
 
 
 def _turn_record(
-    color: Piece,
+    color: Cell,
     board: Board,
     valid_moves: list[tuple[int, int]],
     move: tuple[int, int] | None,
@@ -165,6 +165,6 @@ def _turn_record(
         board=copy_board(board),
         valid_moves=valid_moves.copy(),
         move=move,
-        black_score=_count_piece(board, Piece.BLACK),
-        white_score=_count_piece(board, Piece.WHITE),
+        black_score=_count_cell(board, Cell.BLACK),
+        white_score=_count_cell(board, Cell.WHITE),
     )

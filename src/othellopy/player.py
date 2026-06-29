@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from othellopy.core import Board, Move, Piece, opponent
+from othellopy.core import Board, Cell, Move, opponent
 
 _DIRECTIONS = (
     (-1, -1),
@@ -20,11 +20,11 @@ class BasePlayer(ABC):
     """Base class for students to build their own Othello players."""
 
     @abstractmethod
-    def __init__(self, color: Piece) -> None:
-        """Initialize a player with a black or white piece color."""
-        color = Piece(color)
-        if color not in (Piece.BLACK, Piece.WHITE):
-            msg = "color must be Piece.BLACK or Piece.WHITE"
+    def __init__(self, color: Cell) -> None:
+        """Initialize a player with a black or white cell value."""
+        color = Cell(color)
+        if color not in (Cell.BLACK, Cell.WHITE):
+            msg = "color must be Cell.BLACK or Cell.WHITE"
             raise ValueError(msg)
 
         self.color = color
@@ -45,14 +45,14 @@ class BasePlayer(ABC):
         return moves
 
     def is_valid_move(self, board: Board, row: int, col: int) -> bool:
-        """Return True if this player can place a piece at (row, col)."""
+        """Return True if this player can place a stone at (row, col)."""
         return bool(self.get_flips(board, row, col))
 
     def get_flips(self, board: Board, row: int, col: int) -> list[Move]:
-        """Return the pieces that would be flipped by placing at (row, col)."""
+        """Return the cells that would be flipped by placing at (row, col)."""
         if not _is_on_board(board, row, col):
             return []
-        if board[row][col] != Piece.EMPTY:
+        if board[row][col] != Cell.EMPTY:
             return []
 
         flips = []
@@ -75,10 +75,10 @@ class BasePlayer(ABC):
         current_col = col + col_step
 
         while _is_on_board(board, current_row, current_col):
-            piece = board[current_row][current_col]
-            if piece == self.opponent_color:
+            cell = board[current_row][current_col]
+            if cell == self.opponent_color:
                 flips.append((current_row, current_col))
-            elif piece == self.color:
+            elif cell == self.color:
                 return flips
             else:
                 return []

@@ -13,7 +13,7 @@ Install the latest `main` branch in a Colab notebook:
 Then import the package:
 
 ```python
-from othellopy.core import Piece
+from othellopy.core import Cell
 from othellopy.game import OthelloGame
 from othellopy.player import BasePlayer
 ```
@@ -23,19 +23,19 @@ from othellopy.player import BasePlayer
 Use `BasePlayer` to build your own player class.
 
 ```python
-from othellopy.core import Piece
+from othellopy.core import Cell
 from othellopy.player import BasePlayer
 
 
 class MyPlayer(BasePlayer):
-    def __init__(self, color: Piece) -> None:
+    def __init__(self, color: Cell) -> None:
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, board: list[list[Cell]]) -> tuple[int, int]:
         return self.get_moves(board)[0]
 ```
 
-Board cells use `Piece.EMPTY`, `Piece.BLACK`, and `Piece.WHITE`.
+Board cells use `Cell.EMPTY`, `Cell.BLACK`, and `Cell.WHITE`.
 Coordinates are zero-based `(row, col)` pairs, matching `board[row][col]`.
 `next_move()` is called only when the player has at least one valid move.
 

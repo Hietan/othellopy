@@ -2,16 +2,16 @@
 
 import sys
 
-from othellopy.core import Board, Piece
+from othellopy.core import Board, Cell
 
 
 def initial_board() -> Board:
     """Return the standard initial Othello board."""
-    board = [[Piece.EMPTY for _ in range(8)] for _ in range(8)]
-    board[3][3] = Piece.WHITE
-    board[3][4] = Piece.BLACK
-    board[4][3] = Piece.BLACK
-    board[4][4] = Piece.WHITE
+    board = [[Cell.EMPTY for _ in range(8)] for _ in range(8)]
+    board[3][3] = Cell.WHITE
+    board[3][4] = Cell.BLACK
+    board[4][3] = Cell.BLACK
+    board[4][4] = Cell.WHITE
     return board
 
 
@@ -24,7 +24,7 @@ def board_to_str(board: Board) -> str:
     """Return a readable board string for notebooks and debugging."""
     lines = ["  0 1 2 3 4 5 6 7"]
     for row_number, row in enumerate(board):
-        cells = " ".join(_piece_to_mark(piece) for piece in row)
+        cells = " ".join(_cell_to_mark(cell) for cell in row)
         lines.append(f"{row_number} {cells}")
     return "\n".join(lines)
 
@@ -34,10 +34,10 @@ def print_board(board: Board) -> None:
     sys.stdout.write(f"{board_to_str(board)}\n")
 
 
-def _piece_to_mark(piece: Piece) -> str:
-    piece = Piece(piece)
-    if piece == Piece.BLACK:
+def _cell_to_mark(cell: Cell) -> str:
+    cell = Cell(cell)
+    if cell == Cell.BLACK:
         return "B"
-    if piece == Piece.WHITE:
+    if cell == Cell.WHITE:
         return "W"
     return "."

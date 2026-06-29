@@ -3,7 +3,7 @@
 from enum import IntEnum
 
 
-class Piece(IntEnum):
+class Cell(IntEnum):
     """Board cell values used by othellopy."""
 
     EMPTY = 0
@@ -11,16 +11,16 @@ class Piece(IntEnum):
     WHITE = 2
 
 
-Board = list[list[Piece]]
+Board = list[list[Cell]]
 Move = tuple[int, int]
 
 
-def opponent(piece: Piece) -> Piece:
-    """Return the opponent color for a player piece."""
-    piece = Piece(piece)
-    if piece == Piece.BLACK:
-        return Piece.WHITE
-    if piece == Piece.WHITE:
-        return Piece.BLACK
-    msg = "piece must be Piece.BLACK or Piece.WHITE"
+def opponent(cell: Cell) -> Cell:
+    """Return the opponent color for a player cell value."""
+    cell = Cell(cell)
+    if cell == Cell.BLACK:
+        return Cell.WHITE
+    if cell == Cell.WHITE:
+        return Cell.BLACK
+    msg = "cell must be Cell.BLACK or Cell.WHITE"
     raise ValueError(msg)
