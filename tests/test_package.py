@@ -7,6 +7,7 @@ from othellopy.board import board_to_str, copy_board, initial_board
 from othellopy.core import Board, Cell
 from othellopy.game import GameResult, InvalidMoveError, OthelloGame
 from othellopy.player import BasePlayer
+from othellopy.players import AdvancedPlayer, BeginnerPlayer, IntermediatePlayer
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4
@@ -196,3 +197,31 @@ def test_game_rejects_broken_move_shape() -> None:
     assert error.move is None
     assert error.valid_moves == INITIAL_BLACK_MOVES
     assert "Valid moves:" in str(error)
+
+
+def test_beginner_player_returns_legal_move() -> None:
+    """Choose one legal move randomly."""
+    player = BeginnerPlayer(Cell.BLACK, seed=0)
+    board = initial_board()
+
+    assert player.next_move(board) in INITIAL_BLACK_MOVES
+
+
+def test_intermediate_player_prefers_corner() -> None:
+    """Prefer a corner when the heuristic makes it available."""
+    player = IntermediatePlayer(Cell.BLACK)
+    board = [[Cell.WHITE for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
+    board[0][0] = Cell.EMPTY
+    board[0][1] = Cell.WHITE
+    board[0][2] = Cell.BLACK
+    board[7][7] = Cell.EMPTY
+
+    assert player.next_move(board) == (0, 0)
+
+
+def test_advanced_player_returns_legal_move() -> None:
+    """Choose a legal move with alpha-beta search."""
+    player = AdvancedPlayer(Cell.BLACK)
+    board = initial_board()
+
+    assert player.next_move(board) in INITIAL_BLACK_MOVES

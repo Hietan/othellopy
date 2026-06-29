@@ -39,6 +39,16 @@ Board cells use `Cell.EMPTY`, `Cell.BLACK`, and `Cell.WHITE`.
 Coordinates are zero-based `(row, col)` pairs, matching `board[row][col]`.
 `next_move()` is called only when the player has at least one valid move.
 
+Use sample players when you want a ready-made baseline:
+
+```python
+from othellopy.players import AdvancedPlayer, BeginnerPlayer, IntermediatePlayer
+```
+
+- `BeginnerPlayer`: chooses a legal move randomly.
+- `IntermediatePlayer`: scores legal moves with a simple heuristic.
+- `AdvancedPlayer`: searches ahead with alpha-beta pruning.
+
 ## Game example
 
 Pass two player classes to `OthelloGame` and call `play()`.
