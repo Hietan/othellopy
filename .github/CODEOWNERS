@@ -1,0 +1,10 @@
+# Document repository ownership. Code Owner review is optional in the
+# single-maintainer fork-based workflow.
+* @Hietan
+
+# Extra-sensitive project health and release files.
+/.github/ @Hietan
+/pyproject.toml @Hietan
+/uv.lock @Hietan
+/SECURITY.md @Hietan
+/LICENSE @Hietan

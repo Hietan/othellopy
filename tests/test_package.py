@@ -1,107 +1,193 @@
+"""Package behavior tests."""
+
+import random
+from io import StringIO
+
+import pytest
+
 from othellopy import __version__
 from othellopy.board import board_to_str, copy_board, initial_board
-from othellopy.core import Piece
-from othellopy.game import GameResult, InvalidMoveError, OthelloGame
-from othellopy.player import BasePlayer
+from othellopy.core import Board, Cell
+from othellopy.game import GameResult, OthelloGame
+from othellopy.players import (
+    AdvancedPlayer,
+    BasePlayer,
+    BeginnerPlayer,
+    IntermediatePlayer,
+    ManualPlayer,
+)
+from othellopy.validation import validate, validate_detail
+
+BOARD_SIZE = 8
+INITIAL_OCCUPIED_CELL_COUNT = 4
+CELL_VALUES = {
+    Cell.EMPTY: 0,
+    Cell.BLACK: 1,
+    Cell.WHITE: 2,
+}
+INITIAL_BLACK_MOVES = [(2, 3), (3, 2), (4, 5), (5, 4)]
+INITIAL_WHITE_MOVES = [(2, 4), (3, 5), (4, 2), (5, 3)]
 
 
 class FirstMovePlayer(BasePlayer):
-    def __init__(self, color: Piece) -> None:
+    """Player that picks the first valid move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Return the first available move."""
         return self.get_moves(board)[0]
 
 
 class LastMovePlayer(BasePlayer):
-    def __init__(self, color: Piece) -> None:
+    """Player that picks the last valid move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Return the last available move."""
         return self.get_moves(board)[-1]
 
 
 class InvalidMovePlayer(BasePlayer):
-    def __init__(self, color: Piece) -> None:
+    """Player that always returns an occupied move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, _board: Board) -> tuple[int, int]:
+        """Return an invalid move."""
         return (0, 0)
 
 
 class BrokenMovePlayer(BasePlayer):
-    def __init__(self, color: Piece) -> None:
+    """Player that returns a malformed move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> object:
+    def next_move(self, _board: Board) -> object:
+        """Return an object that is not a move."""
         return None
 
 
+class PrintingPlayer(BasePlayer):
+    """Player that prints while choosing a move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Print before returning a move."""
+        print("debug")  # noqa: T201
+        return self.get_moves(board)[0]
+
+
+class MutatingPlayer(BasePlayer):
+    """Player that mutates the board while choosing a move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Mutate the board before returning a move."""
+        board[0][0] = Cell.BLACK
+        return self.get_moves(board)[0]
+
+
+class ExternalImportPlayer(BasePlayer):
+    """Player that imports an external package."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Use a disallowed external import."""
+        import numpy as np  # noqa: PLC0415
+
+        _ = np.array([1])
+        return self.get_moves(board)[0]
+
+
+class RandomPlayer(BasePlayer):
+    """Player that uses an allowed standard library module."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Use random from the standard library."""
+        return random.choice(self.get_moves(board))  # noqa: S311
+
+
 def test_version() -> None:
-    assert __version__ == "0.1.0"
+    """Expose the package version."""
+    assert __version__ == "0.2.0"
 
 
-def test_piece_values() -> None:
-    assert Piece.EMPTY == 0
-    assert Piece.BLACK == 1
-    assert Piece.WHITE == 2
+def test_cell_values() -> None:
+    """Define stable cell enum values."""
+    assert {
+        Cell.EMPTY: int(Cell.EMPTY),
+        Cell.BLACK: int(Cell.BLACK),
+        Cell.WHITE: int(Cell.WHITE),
+    } == CELL_VALUES
 
 
 def test_base_player_cannot_be_created_directly() -> None:
-    try:
-        BasePlayer(Piece.BLACK)
-    except TypeError:
-        return
-
-    raise AssertionError("BasePlayer should be abstract")
+    """Keep BasePlayer abstract."""
+    with pytest.raises(TypeError):
+        BasePlayer(Cell.BLACK)
 
 
 def test_player_sets_colors() -> None:
-    player = FirstMovePlayer(Piece.BLACK)
+    """Set player and opponent colors during initialization."""
+    player = FirstMovePlayer(Cell.BLACK)
 
-    assert player.color == Piece.BLACK
-    assert player.opponent_color == Piece.WHITE
+    assert player.color == Cell.BLACK
+    assert player.opponent_color == Cell.WHITE
 
 
 def test_empty_color_is_rejected() -> None:
-    try:
-        FirstMovePlayer(Piece.EMPTY)
-    except ValueError:
-        return
-
-    raise AssertionError("Piece.EMPTY should not be accepted as a player color")
+    """Reject empty cells as player colors."""
+    with pytest.raises(ValueError, match=r"color must be Cell\.BLACK or Cell\.WHITE"):
+        FirstMovePlayer(Cell.EMPTY)
 
 
 def test_black_moves_from_initial_board() -> None:
-    player = FirstMovePlayer(Piece.BLACK)
+    """Find the legal black moves from the initial board."""
+    player = FirstMovePlayer(Cell.BLACK)
 
-    assert set(player.get_moves(initial_board())) == {
-        (2, 3),
-        (3, 2),
-        (4, 5),
-        (5, 4),
-    }
+    assert player.get_moves(initial_board()) == INITIAL_BLACK_MOVES
 
 
 def test_white_moves_from_initial_board() -> None:
-    player = FirstMovePlayer(Piece.WHITE)
+    """Find the legal white moves from the initial board."""
+    player = FirstMovePlayer(Cell.WHITE)
 
-    assert set(player.get_moves(initial_board())) == {
-        (2, 4),
-        (3, 5),
-        (4, 2),
-        (5, 3),
-    }
+    assert player.get_moves(initial_board()) == INITIAL_WHITE_MOVES
 
 
 def test_get_flips_for_valid_move() -> None:
-    player = FirstMovePlayer(Piece.BLACK)
+    """Return flipped cells for a valid move."""
+    player = FirstMovePlayer(Cell.BLACK)
 
     assert player.get_flips(initial_board(), 2, 3) == [(3, 3)]
 
 
 def test_invalid_moves_return_false() -> None:
-    player = FirstMovePlayer(Piece.BLACK)
+    """Report invalid moves as false."""
+    player = FirstMovePlayer(Cell.BLACK)
     board = initial_board()
 
     assert not player.is_valid_move(board, 3, 3)
@@ -110,61 +196,168 @@ def test_invalid_moves_return_false() -> None:
 
 
 def test_next_move_returns_first_valid_move() -> None:
-    player = FirstMovePlayer(Piece.BLACK)
+    """Return the first valid move from FirstMovePlayer."""
+    player = FirstMovePlayer(Cell.BLACK)
 
     assert player.next_move(initial_board()) == (2, 3)
 
 
 def test_board_helpers() -> None:
+    """Create, copy, and render boards."""
     board = initial_board()
     board_copy = copy_board(board)
 
     assert board_copy == board
     assert board_copy is not board
     assert board_copy[0] is not board[0]
-    assert board_to_str(board).splitlines()[0] == "  0 1 2 3 4 5 6 7"
+    assert board_to_str(board, use_emoji=True).splitlines()[4] == "3 . . . ⚪️ ⚫️ . . ."
+    assert board_to_str(board, use_emoji=False).splitlines()[4] == "3 . . . W B . . ."
 
 
 def test_game_returns_result() -> None:
+    """Play a game and return a populated result."""
     result = OthelloGame(FirstMovePlayer, LastMovePlayer).play()
 
     assert isinstance(result, GameResult)
-    assert result.winner in (Piece.EMPTY, Piece.BLACK, Piece.WHITE)
-    assert result.black_score + result.white_score <= 64
-    assert result.black_score + result.white_score > 4
-    assert result.moves[0] == (Piece.BLACK, 2, 3)
-    assert result.turns[0].color == Piece.BLACK
-    assert result.turns[0].valid_moves == [(2, 3), (3, 2), (4, 5), (5, 4)]
+    assert result.winner in (Cell.EMPTY, Cell.BLACK, Cell.WHITE)
+    assert result.black_score + result.white_score <= BOARD_SIZE * BOARD_SIZE
+    assert result.black_score + result.white_score > INITIAL_OCCUPIED_CELL_COUNT
+    assert result.moves[0] == (Cell.BLACK, 2, 3)
+    assert result.turns[0].color == Cell.BLACK
+    assert result.turns[0].valid_moves == INITIAL_BLACK_MOVES
     assert result.turns[0].move == (2, 3)
 
 
 def test_game_ends_with_no_valid_moves() -> None:
+    """Stop the game once neither player has valid moves."""
     result = OthelloGame(FirstMovePlayer, FirstMovePlayer).play()
-    black_player = FirstMovePlayer(Piece.BLACK)
-    white_player = FirstMovePlayer(Piece.WHITE)
+    black_player = FirstMovePlayer(Cell.BLACK)
+    white_player = FirstMovePlayer(Cell.WHITE)
 
     assert black_player.get_moves(result.board) == []
     assert white_player.get_moves(result.board) == []
 
 
-def test_game_rejects_invalid_move() -> None:
-    try:
-        OthelloGame(InvalidMovePlayer, FirstMovePlayer).play()
-    except InvalidMoveError as error:
-        assert error.move == (0, 0)
-        assert error.valid_moves == [(2, 3), (3, 2), (4, 5), (5, 4)]
-        assert "Valid moves:" in str(error)
-        assert "0 1 2 3 4 5 6 7" in str(error)
-    else:
-        raise AssertionError("invalid moves should raise InvalidMoveError")
+def test_game_forfeits_invalid_move() -> None:
+    """Declare the opponent as winner when a player returns an illegal move."""
+    result = OthelloGame(InvalidMovePlayer, FirstMovePlayer).play()
+
+    assert result.winner == Cell.WHITE
+    assert result.forfeit is not None
+    assert result.forfeit.color == Cell.BLACK
+    assert result.forfeit.move == (0, 0)
+    assert result.forfeit.valid_moves == INITIAL_BLACK_MOVES
+    assert "Valid moves:" in result.forfeit.message
+    assert "0 1 2 3 4 5 6 7" in result.forfeit.message
 
 
-def test_game_rejects_broken_move_shape() -> None:
-    try:
-        OthelloGame(BrokenMovePlayer, FirstMovePlayer).play()
-    except InvalidMoveError as error:
-        assert error.move is None
-        assert error.valid_moves == [(2, 3), (3, 2), (4, 5), (5, 4)]
-        assert "Valid moves:" in str(error)
-    else:
-        raise AssertionError("broken moves should raise InvalidMoveError")
+def test_game_forfeits_broken_move_shape() -> None:
+    """Declare the opponent as winner when a player returns an invalid shape."""
+    result = OthelloGame(BrokenMovePlayer, FirstMovePlayer).play()
+
+    assert result.winner == Cell.WHITE
+    assert result.forfeit is not None
+    assert result.forfeit.color == Cell.BLACK
+    assert result.forfeit.move is None
+    assert result.forfeit.valid_moves == INITIAL_BLACK_MOVES
+    assert "Valid moves:" in result.forfeit.message
+
+
+def test_beginner_player_returns_legal_move() -> None:
+    """Choose one legal move randomly."""
+    player = BeginnerPlayer(Cell.BLACK, seed=0)
+    board = initial_board()
+
+    assert player.next_move(board) in INITIAL_BLACK_MOVES
+
+
+def test_intermediate_player_prefers_corner() -> None:
+    """Prefer a corner when the heuristic makes it available."""
+    player = IntermediatePlayer(Cell.BLACK)
+    board = [[Cell.WHITE for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
+    board[0][0] = Cell.EMPTY
+    board[0][1] = Cell.WHITE
+    board[0][2] = Cell.BLACK
+    board[7][7] = Cell.EMPTY
+
+    assert player.next_move(board) == (0, 0)
+
+
+def test_advanced_player_returns_legal_move() -> None:
+    """Choose a legal move with alpha-beta search."""
+    player = AdvancedPlayer(Cell.BLACK)
+    board = initial_board()
+
+    assert player.next_move(board) in INITIAL_BLACK_MOVES
+
+
+def test_manual_player_reads_row_then_column() -> None:
+    """Read manual moves as row then column."""
+    output = StringIO()
+    player = ManualPlayer(
+        Cell.BLACK,
+        input_func=lambda _prompt: "23",
+        output=output,
+        use_emoji=False,
+    )
+
+    assert player.next_move(initial_board()) == (2, 3)
+    assert "BLACK to move" in output.getvalue()
+    assert "Valid moves: 23, 32, 45, 54" in output.getvalue()
+
+
+def test_manual_player_retries_invalid_input() -> None:
+    """Keep asking until a manual move is valid."""
+    moves = iter(["99", "23"])
+    output = StringIO()
+    player = ManualPlayer(
+        Cell.BLACK,
+        input_func=lambda _prompt: next(moves),
+        output=output,
+        use_emoji=False,
+    )
+
+    assert player.next_move(initial_board()) == (2, 3)
+    assert "Invalid move: '99'" in output.getvalue()
+
+
+def test_validate_accepts_valid_player() -> None:
+    """Accept a valid submitted player."""
+    assert validate(FirstMovePlayer)
+
+
+def test_validate_allows_standard_library_imports() -> None:
+    """Allow safe standard library imports such as random."""
+    assert validate(RandomPlayer)
+
+
+def test_validate_rejects_invalid_move_player() -> None:
+    """Reject players that return illegal moves."""
+    result = validate_detail(InvalidMovePlayer)
+
+    assert not result.passed
+    assert result.errors[0].code == "illegal-move"
+
+
+def test_validate_rejects_output() -> None:
+    """Reject players that print during next_move."""
+    result = validate_detail(PrintingPlayer)
+
+    assert not result.passed
+    assert any(issue.code == "banned-call" for issue in result.errors)
+
+
+def test_validate_rejects_board_mutation() -> None:
+    """Reject players that mutate the board argument."""
+    result = validate_detail(MutatingPlayer)
+
+    assert not result.passed
+    assert any(issue.code == "board-mutation" for issue in result.errors)
+
+
+def test_validate_rejects_external_packages() -> None:
+    """Reject external package imports such as numpy."""
+    result = validate_detail(ExternalImportPlayer)
+
+    assert not result.passed
+    assert any(issue.code == "external-module" for issue in result.errors)
