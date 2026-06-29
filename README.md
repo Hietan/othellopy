@@ -55,7 +55,7 @@ development code, for example in Google Colab:
 Run a complete game between two sample players:
 
 ```python
-from othellopy.board import print_board
+from othellopy.board import display_board
 from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, IntermediatePlayer
 
@@ -63,7 +63,7 @@ result = OthelloGame(BeginnerPlayer, IntermediatePlayer).play()
 
 print(result.winner)
 print(result.black_score, result.white_score)
-print_board(result.board)
+display_board(result.board)
 ```
 
 ## Writing a Player
@@ -169,9 +169,10 @@ Board helpers render stones as `⚫️` and `⚪️` when the output encoding su
 them. If the output cannot encode those emoji, display falls back to `B` and
 `W`.
 
-Use `display_board()` in Google Colab or Jupyter notebooks. It renders a fixed
-HTML table so emoji stones stay aligned even when the notebook font gives emoji
-a different display width from ASCII characters.
+Use `display_board()` for both notebooks and terminals. In Google Colab or
+Jupyter, it renders a fixed HTML table so emoji stones stay aligned even when
+the notebook font gives emoji a different display width from ASCII characters.
+In a terminal, it falls back to readable text output.
 
 ```python
 from othellopy.board import display_board, initial_board
@@ -179,7 +180,8 @@ from othellopy.board import display_board, initial_board
 display_board(initial_board())
 ```
 
-Use `print_board()` for terminal output.
+`print_board()` is kept as a compatibility helper when you explicitly want text
+output.
 
 ```python
 from othellopy.board import initial_board, print_board
@@ -242,11 +244,12 @@ Cell.WHITE
 : Converts a board to a fixed-cell HTML table for notebook display.
 
 `display_board(board: Board, *, use_emoji: bool | None = None) -> None`
-: Displays a board as HTML in IPython notebooks, falling back to text output
-  outside IPython.
+: Displays a board as HTML in IPython notebooks, falling back to text output in
+  terminals. Prefer this for examples and student code.
 
 `print_board(board: Board, *, use_emoji: bool | None = None) -> None`
-: Prints a readable board.
+: Prints a readable board as text. Kept for compatibility and explicit text
+  output.
 
 ### `othellopy.players`
 
