@@ -30,6 +30,7 @@ This repository follows a GitFlow-style branch model.
 - `dev`: integration branch for completed work.
 - `feat/*`: feature and maintenance work branches.
 - `release/*`: release preparation branches.
+- `dependabot/*`: automated dependency update branches targeting `dev`.
 
 Expected flow:
 
@@ -51,6 +52,7 @@ git push -u origin release/vX.Y.Z
 Pull request routing:
 
 - Open `feat/*` pull requests into `dev`.
+- Open `dependabot/*` pull requests into `dev`.
 - Open `release/*` pull requests into `main`.
 - Do not open `feat/*` pull requests directly into `main`.
 - `main` requires maintainer approval and passing required checks.
@@ -85,6 +87,12 @@ PyPI does not allow replacing a released file. If a release is broken, publish
 a new patch or minor version instead of reusing the same version number.
 
 See [`RELEASE.md`](RELEASE.md) for the full checklist.
+
+## Dependency Updates
+
+Dependabot checks Python dependencies managed by `uv` and GitHub Actions
+weekly. These pull requests target `dev` and use `dependabot/*` branches as the
+only automated exception to human `feat/*` work branches.
 
 ## Public API
 

@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   gitflow:
+    name: Branch Policy / gitflow
     runs-on: ubuntu-latest
 
     steps:
@@ -33,6 +34,10 @@ jobs:
             [[ "$1" == release/* ]]
           }
 
+          is_dependabot_branch() {
+            [[ "$1" == dependabot/* ]] || [[ "$1" == dependabot-* ]]
+          }
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             base="${{ github.base_ref }}"
             head="${{ github.head_ref }}"
@@ -41,12 +46,16 @@ jobs:
               exit 0
             fi
 
+            if [[ "$base" == "dev" ]] && is_dependabot_branch "$head"; then
+              exit 0
+            fi
+
             if [[ "$base" == "main" ]] && is_release_branch "$head"; then
               exit 0
             fi
 
             echo "::error::Invalid GitFlow PR route: '$head' -> '$base'."
-            echo "::error::Use feat/* -> dev or release/* -> main."
+            echo "::error::Use feat/* -> dev, dependabot/* -> dev, or release/* -> main."
             exit 1
           fi
 
@@ -57,10 +66,10 @@ jobs:
             exit 0
           fi
 
-          if [[ "$branch" == "dev" ]] || is_feature_branch "$branch" || is_release_branch "$branch"; then
+          if [[ "$branch" == "dev" ]] || is_feature_branch "$branch" || is_release_branch "$branch" || is_dependabot_branch "$branch"; then
             exit 0
           fi
 
           echo "::error::Invalid branch name '$branch'."
-          echo "::error::Use dev, feat/*, or release/*."
+          echo "::error::Use dev, feat/*, release/*, or dependabot/*."
           exit 1

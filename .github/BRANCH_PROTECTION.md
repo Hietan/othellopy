@@ -15,7 +15,7 @@ Create rules for `main`:
 - Dismiss stale approvals when new commits are pushed.
 - Require status checks to pass before merging:
   - `Branch Policy / gitflow`
-  - every `CI / test` matrix job
+  - `CI / required`
 - Require branches to be up to date before merging.
 - Block force pushes.
 - Block deletions.
@@ -30,11 +30,13 @@ Create rules for `dev`:
 - Dismiss stale approvals when new commits are pushed.
 - Require status checks to pass before merging:
   - `Branch Policy / gitflow`
-  - every `CI / test` matrix job
+  - `CI / required`
 - Block force pushes.
 - Block deletions.
 - Apply rules to administrators.
-- Allow only `feat/*` pull requests into `dev`.
+- Allow `feat/*` pull requests into `dev`.
+- Allow `dependabot/*` pull requests into `dev` for automated dependency
+  updates.
 
 ## Branch Naming
 
@@ -42,8 +44,11 @@ Allowed working branches:
 
 - `feat/*` for feature and maintenance work.
 - `release/*` for release preparation.
+- `dependabot/*` for automated dependency update pull requests to `dev`.
 
 Do not push directly to `main`. Do not merge `feat/*` directly into `main`.
+Set the repository default branch to `dev` so new development pull requests and
+Dependabot security updates target the integration branch by default.
 
 ## Approval Ownership
 
