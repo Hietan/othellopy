@@ -19,7 +19,6 @@ _DIRECTIONS = (
 class BasePlayer(ABC):
     """Base class for students to build their own Othello players."""
 
-    @abstractmethod
     def __init__(self, color: Cell) -> None:
         """Initialize a player with a black or white cell value."""
         color = Cell(color)

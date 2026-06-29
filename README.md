@@ -76,9 +76,6 @@ from othellopy.players import BasePlayer
 
 
 class MyPlayer(BasePlayer):
-    def __init__(self, color: Cell) -> None:
-        super().__init__(color)
-
     def next_move(self, board: Board) -> Move:
         return self.get_moves(board)[0]
 ```

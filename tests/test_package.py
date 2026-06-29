@@ -60,6 +60,14 @@ class LastMovePlayer(BasePlayer):
         return self.get_moves(board)[-1]
 
 
+class NoInitPlayer(BasePlayer):
+    """Player that relies on BasePlayer.__init__."""
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Return the first available move."""
+        return self.get_moves(board)[0]
+
+
 class InvalidMovePlayer(BasePlayer):
     """Player that always returns an occupied move."""
 
@@ -219,6 +227,15 @@ def test_player_sets_colors() -> None:
 
     assert player.color == Cell.BLACK
     assert player.opponent_color == Cell.WHITE
+
+
+def test_player_can_inherit_base_init() -> None:
+    """Allow simple players to implement only next_move."""
+    player = NoInitPlayer(Cell.BLACK)
+
+    assert player.color == Cell.BLACK
+    assert player.opponent_color == Cell.WHITE
+    assert player.next_move(initial_board()) == (2, 3)
 
 
 def test_empty_color_is_rejected() -> None:
@@ -411,6 +428,11 @@ def test_manual_player_retries_invalid_input() -> None:
 def test_validate_accepts_valid_player() -> None:
     """Accept a valid submitted player."""
     assert validate(FirstMovePlayer)
+
+
+def test_validate_accepts_player_without_init() -> None:
+    """Accept a player that inherits BasePlayer.__init__."""
+    assert validate(NoInitPlayer)
 
 
 def test_validate_allows_standard_library_imports() -> None:
