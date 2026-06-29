@@ -34,29 +34,18 @@ class GameResult:
     board: Board
     moves: list[MoveRecord]
     turns: list[TurnRecord]
+    forfeit: "ForfeitRecord | None" = None
 
 
-class InvalidMoveError(ValueError):
-    """Raised when a player returns a move that is not valid."""
+@dataclass(frozen=True)
+class ForfeitRecord:
+    """Information about a forfeit caused by an invalid move."""
 
-    def __init__(
-        self,
-        color: Cell,
-        move: object,
-        valid_moves: list[tuple[int, int]],
-        board: Board,
-    ) -> None:
-        """Build an error describing the rejected move."""
-        self.color = color
-        self.move = move
-        self.valid_moves = valid_moves
-        self.board = copy_board(board)
-        message = (
-            f"{color.name} player returned invalid move: {move!r}\n"
-            f"Valid moves: {valid_moves}\n"
-            f"{board_to_str(board)}"
-        )
-        super().__init__(message)
+    color: Cell
+    move: object
+    valid_moves: list[tuple[int, int]]
+    board: Board
+    message: str
 
 
 class OthelloGame:
@@ -74,8 +63,8 @@ class OthelloGame:
     def play(self) -> GameResult:
         """Play until both players have no valid moves."""
         board = initial_board()
-        moves = []
-        turns = []
+        moves: list[MoveRecord] = []
+        turns: list[TurnRecord] = []
         current_color = Cell.BLACK
         pass_count = 0
 
@@ -92,11 +81,21 @@ class OthelloGame:
             pass_count = 0
             move = player.next_move(copy_board(board))
             if not _is_move(move):
-                raise InvalidMoveError(current_color, move, valid_moves, board)
+                return _forfeit_result(
+                    board,
+                    moves,
+                    turns,
+                    _forfeit_record(board, current_color, move, valid_moves),
+                )
 
             row, col = move
             if not player.is_valid_move(board, row, col):
-                raise InvalidMoveError(current_color, move, valid_moves, board)
+                return _forfeit_result(
+                    board,
+                    moves,
+                    turns,
+                    _forfeit_record(board, current_color, move, valid_moves),
+                )
 
             _place_cell(board, player, row, col)
             moves.append((current_color, row, col))
@@ -143,6 +142,45 @@ def _winner(black_score: int, white_score: int) -> Cell:
     if white_score > black_score:
         return Cell.WHITE
     return Cell.EMPTY
+
+
+def _forfeit_record(
+    board: Board,
+    color: Cell,
+    move: object,
+    valid_moves: list[tuple[int, int]],
+) -> ForfeitRecord:
+    message = (
+        f"{color.name} player forfeited by returning invalid move: {move!r}\n"
+        f"Valid moves: {valid_moves}\n"
+        f"{board_to_str(board)}"
+    )
+    return ForfeitRecord(
+        color=color,
+        move=move,
+        valid_moves=valid_moves.copy(),
+        board=copy_board(board),
+        message=message,
+    )
+
+
+def _forfeit_result(
+    board: Board,
+    moves: list[MoveRecord],
+    turns: list[TurnRecord],
+    forfeit: ForfeitRecord,
+) -> GameResult:
+    black_score = _count_cell(board, Cell.BLACK)
+    white_score = _count_cell(board, Cell.WHITE)
+    return GameResult(
+        winner=_next_color(forfeit.color),
+        black_score=black_score,
+        white_score=white_score,
+        board=copy_board(board),
+        moves=moves.copy(),
+        turns=turns.copy(),
+        forfeit=forfeit,
+    )
 
 
 def _is_move(move: object) -> bool:

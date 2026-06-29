@@ -5,7 +5,7 @@ import pytest
 from othellopy import __version__
 from othellopy.board import board_to_str, copy_board, initial_board
 from othellopy.core import Board, Cell
-from othellopy.game import GameResult, InvalidMoveError, OthelloGame
+from othellopy.game import GameResult, OthelloGame
 from othellopy.players import (
     AdvancedPlayer,
     BasePlayer,
@@ -180,27 +180,29 @@ def test_game_ends_with_no_valid_moves() -> None:
     assert white_player.get_moves(result.board) == []
 
 
-def test_game_rejects_invalid_move() -> None:
-    """Reject moves that are not legal for the current board."""
-    with pytest.raises(InvalidMoveError) as error_info:
-        OthelloGame(InvalidMovePlayer, FirstMovePlayer).play()
+def test_game_forfeits_invalid_move() -> None:
+    """Declare the opponent as winner when a player returns an illegal move."""
+    result = OthelloGame(InvalidMovePlayer, FirstMovePlayer).play()
 
-    error = error_info.value
-    assert error.move == (0, 0)
-    assert error.valid_moves == INITIAL_BLACK_MOVES
-    assert "Valid moves:" in str(error)
-    assert "0 1 2 3 4 5 6 7" in str(error)
+    assert result.winner == Cell.WHITE
+    assert result.forfeit is not None
+    assert result.forfeit.color == Cell.BLACK
+    assert result.forfeit.move == (0, 0)
+    assert result.forfeit.valid_moves == INITIAL_BLACK_MOVES
+    assert "Valid moves:" in result.forfeit.message
+    assert "0 1 2 3 4 5 6 7" in result.forfeit.message
 
 
-def test_game_rejects_broken_move_shape() -> None:
-    """Reject moves with an invalid shape."""
-    with pytest.raises(InvalidMoveError) as error_info:
-        OthelloGame(BrokenMovePlayer, FirstMovePlayer).play()
+def test_game_forfeits_broken_move_shape() -> None:
+    """Declare the opponent as winner when a player returns an invalid shape."""
+    result = OthelloGame(BrokenMovePlayer, FirstMovePlayer).play()
 
-    error = error_info.value
-    assert error.move is None
-    assert error.valid_moves == INITIAL_BLACK_MOVES
-    assert "Valid moves:" in str(error)
+    assert result.winner == Cell.WHITE
+    assert result.forfeit is not None
+    assert result.forfeit.color == Cell.BLACK
+    assert result.forfeit.move is None
+    assert result.forfeit.valid_moves == INITIAL_BLACK_MOVES
+    assert "Valid moves:" in result.forfeit.message
 
 
 def test_beginner_player_returns_legal_move() -> None:

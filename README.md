@@ -76,8 +76,8 @@ print(last_turn.valid_moves)
 print_board(last_turn.board)
 ```
 
-If a player returns an invalid move, the error message includes the move,
-valid moves, and the board for that turn.
+If a player returns an invalid move, that player forfeits. The returned
+`GameResult` stores the winner and the invalid move details in `result.forfeit`.
 
 ## Git Flow
 
