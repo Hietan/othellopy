@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "othellopy"
-version = "0.1.0"
+version = "0.2.0"
 description = "Small Othello/Reversi utilities and sample players for Python lessons."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,8 +38,10 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/Hietan/othellopy"
 Repository = "https://github.com/Hietan/othellopy"
+PyPI = "https://pypi.org/project/othellopy/"
 Issues = "https://github.com/Hietan/othellopy/issues"
 Changelog = "https://github.com/Hietan/othellopy/blob/main/CHANGELOG.md"
+Security = "https://github.com/Hietan/othellopy/security/policy"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/othellopy"]

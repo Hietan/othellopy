@@ -49,3 +49,12 @@ Do not push directly to `main`. Do not merge `feat/*` directly into `main`.
 
 `.github/CODEOWNERS` assigns ownership to `@Hietan`. With code owner review
 enabled, pull requests require Hietan approval before merge.
+
+## PyPI Publishing
+
+Create and protect the GitHub Environment named `pypi`.
+
+- Require maintainer approval before deployment.
+- Configure PyPI Trusted Publishing for repository `Hietan/othellopy`,
+  workflow `.github/workflows/publish.yml`, and environment `pypi`.
+- Do not store broad PyPI credentials in repository secrets.

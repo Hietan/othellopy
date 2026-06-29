@@ -26,3 +26,8 @@ body:
     attributes:
       label: Compatibility notes
       description: Does this affect public APIs, examples, or existing behavior?
+  - type: textarea
+    id: docs
+    attributes:
+      label: Documentation or PyPI impact
+      description: Would this require README, API docs, or PyPI metadata changes?

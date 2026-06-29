@@ -39,10 +39,19 @@ body:
     validations:
       required: true
   - type: input
+    id: source
+    attributes:
+      label: Installation source
+      description: Where did you install othellopy from?
+      placeholder: "PyPI (`python -m pip install othellopy`) or GitHub branch"
+    validations:
+      required: true
+  - type: input
     id: version
     attributes:
       label: othellopy version or commit
-      placeholder: "0.1.0 or commit SHA"
+      description: For PyPI installs, run `python -m pip show othellopy`.
+      placeholder: "0.1.0, 0.2.0, or commit SHA"
     validations:
       required: true
   - type: textarea

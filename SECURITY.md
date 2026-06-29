@@ -1,10 +1,15 @@
 # Security Policy
 
+Official releases are distributed on PyPI as
+[`othellopy`](https://pypi.org/project/othellopy/) from the source repository
+[`Hietan/othellopy`](https://github.com/Hietan/othellopy).
+
 ## Supported Versions
 
-Security fixes are provided for the latest released version of `othellopy`.
-Versions below `1.0.0` are considered alpha-quality and may receive breaking
-changes.
+Security fixes are provided for the latest PyPI release of `othellopy`.
+Development installs from GitHub branches are best-effort and may be ahead of
+or behind the supported PyPI release. Versions below `1.0.0` are considered
+alpha-quality and may receive breaking changes.
 
 ## Reporting a Vulnerability
 
@@ -19,7 +24,8 @@ Please include:
 
 - A description of the vulnerability.
 - Steps to reproduce or a proof of concept.
-- The affected version or commit.
+- The affected PyPI version or Git commit.
+- The installation source, such as PyPI or a GitHub branch.
 - Any known workaround.
 
 The maintainer aims to acknowledge reports within 7 days and to provide an

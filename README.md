@@ -1,11 +1,22 @@
 # othellopy
 
+[![PyPI](https://img.shields.io/pypi/v/othellopy.svg)](https://pypi.org/project/othellopy/)
+[![Python](https://img.shields.io/pypi/pyversions/othellopy.svg)](https://pypi.org/project/othellopy/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/Hietan/othellopy/blob/main/LICENSE)
+[![CI](https://github.com/Hietan/othellopy/actions/workflows/ci.yml/badge.svg)](https://github.com/Hietan/othellopy/actions/workflows/ci.yml)
+
 `othellopy` is a small Python package for Othello/Reversi exercises. It
 provides a board model, a game runner, move validation helpers, and sample
 players ranging from random play to alpha-beta search.
 
 The package is currently `0.x` alpha software. Public APIs may change before
 `1.0.0`.
+
+Official distribution:
+
+- PyPI package: [`othellopy`](https://pypi.org/project/othellopy/)
+- Source repository: [`Hietan/othellopy`](https://github.com/Hietan/othellopy)
+- Issues: <https://github.com/Hietan/othellopy/issues>
 
 ## Requirements
 
@@ -17,10 +28,23 @@ The package is currently `0.x` alpha software. Public APIs may change before
 Install from PyPI:
 
 ```bash
-pip install othellopy
+python -m pip install othellopy
 ```
 
-Install the latest `main` branch, for example in Google Colab:
+Upgrade an existing PyPI installation:
+
+```bash
+python -m pip install --upgrade othellopy
+```
+
+Check the installed version:
+
+```bash
+python -m pip show othellopy
+```
+
+Install an unreleased branch from GitHub only when you intentionally need
+development code, for example in Google Colab:
 
 ```python
 !pip install git+https://github.com/Hietan/othellopy.git@main
@@ -251,10 +275,19 @@ uv run --extra dev pytest
 uv build
 ```
 
+## Release Policy
+
+`othellopy` is published on PyPI from GitHub tags named `vX.Y.Z`.
+Published PyPI files are immutable, so a broken release is fixed by publishing
+a newer version instead of replacing an existing one.
+
+The release checklist is documented in
+[`RELEASE.md`](https://github.com/Hietan/othellopy/blob/main/RELEASE.md).
+
 ## Contributing
 
 Contributions must follow the GitFlow rules in
-[`CONTRIBUTING.md`](CONTRIBUTING.md):
+[`CONTRIBUTING.md`](https://github.com/Hietan/othellopy/blob/main/CONTRIBUTING.md):
 
 - `feat/*` pull requests target `dev`.
 - `release/*` pull requests target `main`.
@@ -264,8 +297,9 @@ Contributions must follow the GitFlow rules in
 ## Security
 
 Please do not report vulnerabilities in public issues. See
-[`SECURITY.md`](SECURITY.md).
+[`SECURITY.md`](https://github.com/Hietan/othellopy/blob/main/SECURITY.md).
 
 ## License
 
-Licensed under the Apache License, Version 2.0. See [`LICENSE`](LICENSE).
+Licensed under the Apache License, Version 2.0. See
+[`LICENSE`](https://github.com/Hietan/othellopy/blob/main/LICENSE).

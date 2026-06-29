@@ -2,6 +2,10 @@
 
 Thank you for considering a contribution to `othellopy`.
 
+The official package is published on PyPI as
+[`othellopy`](https://pypi.org/project/othellopy/), from the source repository
+[`Hietan/othellopy`](https://github.com/Hietan/othellopy).
+
 ## Development Setup
 
 ```bash
@@ -33,12 +37,15 @@ Expected flow:
 git switch dev
 git switch -c feat/my-change
 # work and commit
+git push -u origin feat/my-change
+# open a pull request from feat/my-change to dev
+
 git switch dev
-git merge --no-ff feat/my-change
-git switch -c release/v0.1.0
+git pull --ff-only
+git switch -c release/vX.Y.Z
 # final release checks
-git switch main
-git merge --no-ff release/v0.1.0
+git push -u origin release/vX.Y.Z
+# open a pull request from release/vX.Y.Z to main
 ```
 
 Pull request routing:
@@ -56,8 +63,28 @@ GitHub branch protection or rulesets.
 - Keep changes focused.
 - Include tests for behavior changes.
 - Update README or other docs when public behavior changes.
+- Update `CHANGELOG.md` for user-visible behavior, public API, packaging, or
+  release process changes.
 - Use Conventional Commit style for commit subjects when practical, such as
   `feat: add manual player` or `fix: validate moves`.
+
+## Releases
+
+Only maintainers publish to PyPI. Releases are prepared from `dev` on a
+`release/vX.Y.Z` branch, reviewed into `main`, tagged as `vX.Y.Z`, and
+published by the GitHub Actions `Publish` workflow.
+
+Before opening a release pull request:
+
+- Update the version in `pyproject.toml` and `src/othellopy/__init__.py`.
+- Update `CHANGELOG.md` and replace `Unreleased` with the release date.
+- Run ruff, mypy, pytest, and `uv build`.
+- Confirm that PyPI does not already have the target version.
+
+PyPI does not allow replacing a released file. If a release is broken, publish
+a new patch or minor version instead of reusing the same version number.
+
+See [`RELEASE.md`](RELEASE.md) for the full checklist.
 
 ## Public API
 
