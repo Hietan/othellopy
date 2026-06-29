@@ -86,10 +86,11 @@ class MyPlayer(BasePlayer):
 Coordinates are zero-based `(row, col)` pairs. `next_move()` is called only
 when the player has at least one legal move.
 
-## Pre-Submission Player Check
+## Runtime Player Check
 
-Use `validate()` before submitting a custom player from Google Colab or another
-notebook environment.
+Use `validate()` in Google Colab to check that a custom player actually runs
+correctly. This is the dynamic part of validation; browser-side static analysis
+can separately check imports and source-code rules before students run Colab.
 
 ```python
 from othellopy.validation import validate, validate_detail
@@ -102,41 +103,23 @@ else:
         print(issue.code, issue.message)
 ```
 
-The validator checks that the class inherits from `BasePlayer`, can be
-constructed for black and white, returns legal moves on several board states,
-and returns within one second by default. `print()` and `display_board()` are
-allowed, so students can debug in Google Colab while running validation.
+The runtime validator checks that the class inherits from `BasePlayer`, can be
+constructed for black and white, returns legal moves on many board states, and
+returns within one second by default. `print()` and `display_board()` are
+allowed, so students can debug in Google Colab while running runtime validation.
 
 The board passed to `next_move()` is an isolated copy during validation and game
 play, so accidental board edits do not change the real game state. Students
 should still treat the board as read-only because only the returned move is used.
 
-When Google Colab prevents source inspection, validation reports
-`source-unavailable` as a warning and continues with runtime checks.
+Runtime validation does not inspect source code and does not enforce import
+policy. Use a separate static analyzer, for example in a Next.js client, to
+reject external packages such as `numpy` or risky APIs such as `open()`,
+`input()`, `eval()`, and `exec()`.
 
-The validator also performs static checks when source code is available.
-External packages such as `numpy` and `pandas` are not allowed for this course.
-Most safe Python standard library modules are allowed, including:
-
-- `random`
-- `math`
-- `statistics`
-- `itertools`
-- `collections`
-- `functools`
-- `operator`
-- `heapq`
-- `bisect`
-- `copy`
-
-File, process, network, import-system, threading, and arbitrary-code execution
-APIs are rejected. Examples include `os`, `sys`, `pathlib`, `subprocess`,
-`socket`, `urllib`, `pickle`, `importlib`, `threading`, `open()`, `input()`,
-`eval()`, and `exec()`.
-
-This is a pre-submission screen, not a security sandbox. Evaluation servers
-should run the same validation again and execute submitted players in an
-isolated sandbox.
+This is a runtime screen, not a security sandbox. Evaluation servers should run
+the same runtime validation again and execute submitted players in an isolated
+sandbox.
 
 ## Manual CLI Play
 
@@ -333,10 +316,10 @@ Fields:
 ### `othellopy.validation`
 
 `validate(player_class, *, max_seconds=1.0) -> bool`
-: Returns `True` when a submitted player class passes pre-submission checks.
+: Returns `True` when a submitted player class passes runtime checks.
 
 `validate_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
-: Returns detailed errors, warnings, and runtime case details.
+: Returns detailed runtime errors and runtime case details.
 
 `ValidationResult`
 : Detailed validation result.

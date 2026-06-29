@@ -1,11 +1,12 @@
 """Package behavior tests."""
 
 import random
+import time
 from io import StringIO
 
 import pytest
 
-from othellopy import __version__, validation
+from othellopy import __version__
 from othellopy.board import (
     board_to_html,
     board_to_str,
@@ -138,6 +139,48 @@ class ExternalImportPlayer(BasePlayer):
         return self.get_moves(board)[0]
 
 
+class DormantExternalImportPlayer(BasePlayer):
+    """Player that contains an external import in unreachable code."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Contain source that a static analyzer may reject."""
+        if False:
+            import numpy as np  # noqa: PLC0415
+
+            _ = np.array([1])
+        return self.get_moves(board)[0]
+
+
+class RaisingPlayer(BasePlayer):
+    """Player that raises during move selection."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, _board: Board) -> tuple[int, int]:
+        """Raise a runtime error."""
+        msg = "boom"
+        raise RuntimeError(msg)
+
+
+class SlowPlayer(BasePlayer):
+    """Player that sleeps too long during move selection."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Sleep before returning a move."""
+        time.sleep(0.05)
+        return self.get_moves(board)[0]
+
+
 class RandomPlayer(BasePlayer):
     """Player that uses an allowed standard library module."""
 
@@ -152,7 +195,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.2"
+    assert __version__ == "0.2.3"
 
 
 def test_cell_values() -> None:
@@ -398,25 +441,44 @@ def test_validate_allows_board_mutation_on_copied_board() -> None:
     assert validate(MutatingPlayer)
 
 
-def test_validate_warns_when_source_is_unavailable(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Continue runtime checks when source inspection fails in notebooks."""
-
-    def raise_os_error(_obj: object) -> str:
-        raise OSError
-
-    monkeypatch.setattr(validation.inspect, "getsource", raise_os_error)
-
+def test_validate_reports_runtime_case_details() -> None:
+    """Run a broad set of runtime board cases."""
     result = validate_detail(FirstMovePlayer)
 
     assert result.passed
-    assert any(issue.code == "source-unavailable" for issue in result.warnings)
+    case_names = {case["name"] for case in result.details["runtime_cases"]}
+    assert {
+        "initial-black",
+        "initial-white",
+        "black-corner",
+        "white-corner",
+        "black-edge",
+        "white-edge",
+        "black-multi-direction",
+        "white-multi-direction",
+        "black-single-move",
+        "white-single-move",
+        "black-late-game",
+        "white-late-game",
+    } <= case_names
 
 
-def test_validate_rejects_external_packages() -> None:
-    """Reject external package imports such as numpy."""
-    result = validate_detail(ExternalImportPlayer)
+def test_validate_rejects_runtime_errors() -> None:
+    """Reject players that raise during runtime validation."""
+    result = validate_detail(RaisingPlayer)
 
     assert not result.passed
-    assert any(issue.code == "external-module" for issue in result.errors)
+    assert result.errors[0].code == "runtime-error"
+
+
+def test_validate_rejects_timeout() -> None:
+    """Reject players that exceed the configured time limit."""
+    result = validate_detail(SlowPlayer, max_seconds=0.001)
+
+    assert not result.passed
+    assert result.errors[0].code == "timeout"
+
+
+def test_validate_does_not_perform_static_import_checks() -> None:
+    """Leave import/package policy to the client-side static analyzer."""
+    assert validate(DormantExternalImportPlayer)
