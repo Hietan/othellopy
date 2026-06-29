@@ -6,7 +6,7 @@
 [![CI](https://github.com/Hietan/othellopy/actions/workflows/ci.yml/badge.svg)](https://github.com/Hietan/othellopy/actions/workflows/ci.yml)
 
 `othellopy` is a small Python package for Othello/Reversi exercises. It
-provides a board model, a game runner, move validation helpers, and sample
+provides a board model, a game runner, player test helpers, and sample
 players ranging from random play to alpha-beta search.
 
 The package is currently `0.x` alpha software. Public APIs may change before
@@ -25,29 +25,16 @@ Official distribution:
 
 ## Installation
 
-Install from PyPI:
+Install with pip:
 
 ```bash
-python -m pip install othellopy
+pip install othellopy
 ```
 
-Upgrade an existing PyPI installation:
+Or add it to a uv project:
 
 ```bash
-python -m pip install --upgrade othellopy
-```
-
-Check the installed version:
-
-```bash
-python -m pip show othellopy
-```
-
-Install an unreleased branch from GitHub only when you intentionally need
-development code, for example in Google Colab:
-
-```python
-!pip install git+https://github.com/Hietan/othellopy.git@main
+uv add othellopy
 ```
 
 ## Quick Start
@@ -55,15 +42,15 @@ development code, for example in Google Colab:
 Run a complete game between two sample players:
 
 ```python
-from othellopy.board import print_board
+from othellopy.board import display_board
 from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, IntermediatePlayer
 
 result = OthelloGame(BeginnerPlayer, IntermediatePlayer).play()
 
-print(result.winner)
+print(result.winner_name)
 print(result.black_score, result.white_score)
-print_board(result.board)
+display_board(result.board)
 ```
 
 ## Writing a Player
@@ -76,9 +63,6 @@ from othellopy.players import BasePlayer
 
 
 class MyPlayer(BasePlayer):
-    def __init__(self, color: Cell) -> None:
-        super().__init__(color)
-
     def next_move(self, board: Board) -> Move:
         return self.get_moves(board)[0]
 ```
@@ -86,57 +70,40 @@ class MyPlayer(BasePlayer):
 Coordinates are zero-based `(row, col)` pairs. `next_move()` is called only
 when the player has at least one legal move.
 
-## Pre-Submission Player Check
+## Runtime Player Check
 
-Use `validate()` before submitting a custom player from Google Colab or another
-notebook environment.
+Use `test_player()` in Google Colab to check that a custom player actually runs
+correctly. This is the dynamic part of validation; browser-side static analysis
+can separately check imports and source-code rules before students run Colab.
 
 ```python
-from othellopy.validation import validate, validate_detail
+from othellopy.validation import test_player, test_player_detail
 
-if validate(MyPlayer):
-    print("OK to submit")
+if test_player(MyPlayer):
+    print("Basic player tests passed")
 else:
-    result = validate_detail(MyPlayer)
+    result = test_player_detail(MyPlayer)
     for issue in result.errors:
         print(issue.code, issue.message)
 ```
 
-The validator checks that the class inherits from `BasePlayer`, can be
-constructed for black and white, returns legal moves on several board states,
-and returns within one second by default. `print()` and `display_board()` are
-allowed, so students can debug in Google Colab while running validation.
+The runtime player tests check that the class inherits from `BasePlayer`, can be
+constructed for black and white, returns legal moves on many board states, and
+returns within one second by default. `print()` and `display_board()` are
+allowed, so students can debug in Google Colab while running the tests.
 
-The board passed to `next_move()` is an isolated copy during validation and game
+The board passed to `next_move()` is an isolated copy during player tests and game
 play, so accidental board edits do not change the real game state. Students
 should still treat the board as read-only because only the returned move is used.
 
-When Google Colab prevents source inspection, validation reports
-`source-unavailable` as a warning and continues with runtime checks.
+Runtime player tests do not inspect source code and do not enforce import
+policy. Use a separate static analyzer, for example in a Next.js client, to
+reject external packages such as `numpy` or risky APIs such as `open()`,
+`input()`, `eval()`, and `exec()`.
 
-The validator also performs static checks when source code is available.
-External packages such as `numpy` and `pandas` are not allowed for this course.
-Most safe Python standard library modules are allowed, including:
-
-- `random`
-- `math`
-- `statistics`
-- `itertools`
-- `collections`
-- `functools`
-- `operator`
-- `heapq`
-- `bisect`
-- `copy`
-
-File, process, network, import-system, threading, and arbitrary-code execution
-APIs are rejected. Examples include `os`, `sys`, `pathlib`, `subprocess`,
-`socket`, `urllib`, `pickle`, `importlib`, `threading`, `open()`, `input()`,
-`eval()`, and `exec()`.
-
-This is a pre-submission screen, not a security sandbox. Evaluation servers
-should run the same validation again and execute submitted players in an
-isolated sandbox.
+This is a runtime screen, not a security sandbox. Evaluation servers should run
+the same runtime player tests again and execute submitted players in an isolated
+sandbox.
 
 ## Manual CLI Play
 
@@ -158,7 +125,7 @@ from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, ManualPlayer
 
 result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
-print(result.winner, result.black_score, result.white_score)
+print(result.winner_name, result.black_score, result.white_score)
 PY
 ```
 
@@ -186,9 +153,10 @@ Board helpers render stones as `⚫️` and `⚪️` when the output encoding su
 them. If the output cannot encode those emoji, display falls back to `B` and
 `W`.
 
-Use `display_board()` in Google Colab or Jupyter notebooks. It renders a fixed
-HTML table so emoji stones stay aligned even when the notebook font gives emoji
-a different display width from ASCII characters.
+Use `display_board()` for both notebooks and terminals. In Google Colab or
+Jupyter, it renders a fixed HTML table so emoji stones stay aligned even when
+the notebook font gives emoji a different display width from ASCII characters.
+In a terminal, it falls back to readable text output.
 
 ```python
 from othellopy.board import display_board, initial_board
@@ -196,7 +164,8 @@ from othellopy.board import display_board, initial_board
 display_board(initial_board())
 ```
 
-Use `print_board()` for terminal output.
+`print_board()` is kept as a compatibility helper when you explicitly want text
+output.
 
 ```python
 from othellopy.board import initial_board, print_board
@@ -212,10 +181,13 @@ If a player returns an invalid move, the player forfeits and the opponent wins.
 The game still returns a `GameResult`.
 
 ```python
-result = OthelloGame(MyPlayer, BeginnerPlayer).play()
+result = OthelloGame(
+    black_player=MyPlayer,
+    white_player=BeginnerPlayer,
+).play()
 
 if result.forfeit is not None:
-    print(result.winner)
+    print(result.winner_name)
     print(result.forfeit.color)
     print(result.forfeit.move)
     print(result.forfeit.valid_moves)
@@ -259,11 +231,12 @@ Cell.WHITE
 : Converts a board to a fixed-cell HTML table for notebook display.
 
 `display_board(board: Board, *, use_emoji: bool | None = None) -> None`
-: Displays a board as HTML in IPython notebooks, falling back to text output
-  outside IPython.
+: Displays a board as HTML in IPython notebooks, falling back to text output in
+  terminals. Prefer this for examples and student code.
 
 `print_board(board: Board, *, use_emoji: bool | None = None) -> None`
-: Prints a readable board.
+: Prints a readable board as text. Kept for compatibility and explicit text
+  output.
 
 ### `othellopy.players`
 
@@ -291,8 +264,9 @@ Cell.WHITE
 
 ### `othellopy.game`
 
-`OthelloGame(black_player_class, white_player_class)`
-: Runs one game between two `BasePlayer` subclasses.
+`OthelloGame(black_player, white_player)`
+: Runs one game between two `BasePlayer` subclasses. Keyword arguments
+  `black_player=...` and `white_player=...` are recommended for notebooks.
 
 `GameResult`
 : Return value from `OthelloGame(...).play()`.
@@ -300,6 +274,7 @@ Cell.WHITE
 Fields:
 
 - `winner: Cell`
+- `winner_name: str`
 - `black_score: int`
 - `white_score: int`
 - `board: Board`
@@ -332,11 +307,14 @@ Fields:
 
 ### `othellopy.validation`
 
-`validate(player_class, *, max_seconds=1.0) -> bool`
-: Returns `True` when a submitted player class passes pre-submission checks.
+`test_player(player_class, *, max_seconds=1.0) -> bool`
+: Returns `True` when a submitted player class passes runtime player tests.
 
-`validate_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
-: Returns detailed errors, warnings, and runtime case details.
+`test_player_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
+: Returns detailed runtime errors and runtime case details.
+
+`validate(...)` / `validate_detail(...)`
+: Compatibility aliases for `test_player(...)` and `test_player_detail(...)`.
 
 `ValidationResult`
 : Detailed validation result.
