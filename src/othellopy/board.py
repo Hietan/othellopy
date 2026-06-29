@@ -107,17 +107,17 @@ def board_to_html(board: Board, *, use_emoji: bool | None = None) -> str:
 
 
 def display_board(board: Board, *, use_emoji: bool | None = None) -> None:
-    """Display a board as HTML in notebooks, falling back to text output."""
+    """Display a board in notebooks, falling back to text output in terminals."""
     try:
         display_module = import_module("IPython.display")
     except ImportError:
-        print_board(board, use_emoji=use_emoji)
+        _write_board_text(board, use_emoji=use_emoji)
         return
 
     html_factory = getattr(display_module, "HTML", None)
     display_func = getattr(display_module, "display", None)
     if not callable(html_factory) or not callable(display_func):
-        print_board(board, use_emoji=use_emoji)
+        _write_board_text(board, use_emoji=use_emoji)
         return
 
     make_html = cast("Callable[[str], object]", html_factory)
@@ -126,7 +126,11 @@ def display_board(board: Board, *, use_emoji: bool | None = None) -> None:
 
 
 def print_board(board: Board, *, use_emoji: bool | None = None) -> None:
-    """Print a readable board for notebooks and debugging."""
+    """Print a readable board. Prefer display_board() for new code."""
+    _write_board_text(board, use_emoji=use_emoji)
+
+
+def _write_board_text(board: Board, *, use_emoji: bool | None = None) -> None:
     sys.stdout.write(f"{board_to_str(board, use_emoji=use_emoji)}\n")
 
 
