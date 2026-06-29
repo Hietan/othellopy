@@ -333,12 +333,50 @@ def test_game_returns_result() -> None:
 
     assert isinstance(result, GameResult)
     assert result.winner in (Cell.EMPTY, Cell.BLACK, Cell.WHITE)
+    assert result.winner_name in ("BLACK", "WHITE", "DRAW")
     assert result.black_score + result.white_score <= BOARD_SIZE * BOARD_SIZE
     assert result.black_score + result.white_score > INITIAL_OCCUPIED_CELL_COUNT
     assert result.moves[0] == (Cell.BLACK, 2, 3)
     assert result.turns[0].color == Cell.BLACK
     assert result.turns[0].valid_moves == INITIAL_BLACK_MOVES
     assert result.turns[0].move == (2, 3)
+
+
+def test_game_result_reports_readable_winner_names() -> None:
+    """Provide display-friendly winner names."""
+    assert (
+        GameResult(
+            winner=Cell.BLACK,
+            black_score=1,
+            white_score=0,
+            board=[],
+            moves=[],
+            turns=[],
+        ).winner_name
+        == "BLACK"
+    )
+    assert (
+        GameResult(
+            winner=Cell.WHITE,
+            black_score=0,
+            white_score=1,
+            board=[],
+            moves=[],
+            turns=[],
+        ).winner_name
+        == "WHITE"
+    )
+    assert (
+        GameResult(
+            winner=Cell.EMPTY,
+            black_score=1,
+            white_score=1,
+            board=[],
+            moves=[],
+            turns=[],
+        ).winner_name
+        == "DRAW"
+    )
 
 
 def test_game_accepts_player_keyword_names() -> None:

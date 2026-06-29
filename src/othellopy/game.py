@@ -37,6 +37,15 @@ class GameResult:
     turns: list[TurnRecord]
     forfeit: "ForfeitRecord | None" = None
 
+    @property
+    def winner_name(self) -> str:
+        """Return a readable winner name: BLACK, WHITE, or DRAW."""
+        if self.winner == Cell.BLACK:
+            return "BLACK"
+        if self.winner == Cell.WHITE:
+            return "WHITE"
+        return "DRAW"
+
 
 @dataclass(frozen=True)
 class ForfeitRecord:

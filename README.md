@@ -61,7 +61,7 @@ from othellopy.players import BeginnerPlayer, IntermediatePlayer
 
 result = OthelloGame(BeginnerPlayer, IntermediatePlayer).play()
 
-print(result.winner)
+print(result.winner_name)
 print(result.black_score, result.white_score)
 display_board(result.board)
 ```
@@ -138,7 +138,7 @@ from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, ManualPlayer
 
 result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
-print(result.winner, result.black_score, result.white_score)
+print(result.winner_name, result.black_score, result.white_score)
 PY
 ```
 
@@ -200,7 +200,7 @@ result = OthelloGame(
 ).play()
 
 if result.forfeit is not None:
-    print(result.winner)
+    print(result.winner_name)
     print(result.forfeit.color)
     print(result.forfeit.move)
     print(result.forfeit.valid_moves)
@@ -287,6 +287,7 @@ Cell.WHITE
 Fields:
 
 - `winner: Cell`
+- `winner_name: str`
 - `black_score: int`
 - `white_score: int`
 - `board: Board`
