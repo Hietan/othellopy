@@ -164,6 +164,18 @@ Board helpers render stones as `⚫️` and `⚪️` when the output encoding su
 them. If the output cannot encode those emoji, display falls back to `B` and
 `W`.
 
+Use `display_board()` in Google Colab or Jupyter notebooks. It renders a fixed
+HTML table so emoji stones stay aligned even when the notebook font gives emoji
+a different display width from ASCII characters.
+
+```python
+from othellopy.board import display_board, initial_board
+
+display_board(initial_board())
+```
+
+Use `print_board()` for terminal output.
+
 ```python
 from othellopy.board import initial_board, print_board
 
@@ -220,6 +232,13 @@ Cell.WHITE
 
 `board_to_str(board: Board, *, use_emoji: bool | None = None) -> str`
 : Converts a board to readable text.
+
+`board_to_html(board: Board, *, use_emoji: bool | None = None) -> str`
+: Converts a board to a fixed-cell HTML table for notebook display.
+
+`display_board(board: Board, *, use_emoji: bool | None = None) -> None`
+: Displays a board as HTML in IPython notebooks, falling back to text output
+  outside IPython.
 
 `print_board(board: Board, *, use_emoji: bool | None = None) -> None`
 : Prints a readable board.

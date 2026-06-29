@@ -6,7 +6,7 @@ from io import StringIO
 import pytest
 
 from othellopy import __version__
-from othellopy.board import board_to_str, copy_board, initial_board
+from othellopy.board import board_to_html, board_to_str, copy_board, initial_board
 from othellopy.core import Board, Cell
 from othellopy.game import GameResult, OthelloGame
 from othellopy.players import (
@@ -132,7 +132,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.0"
+    assert __version__ == "0.2.1"
 
 
 def test_cell_values() -> None:
@@ -212,6 +212,30 @@ def test_board_helpers() -> None:
     assert board_copy[0] is not board[0]
     assert board_to_str(board, use_emoji=True).splitlines()[4] == "3 . . . ⚪️ ⚫️ . . ."
     assert board_to_str(board, use_emoji=False).splitlines()[4] == "3 . . . W B . . ."
+
+
+def test_board_to_html_uses_fixed_cells() -> None:
+    """Render a fixed-cell HTML table for notebook display."""
+    html = board_to_html(initial_board(), use_emoji=True)
+
+    assert html.startswith('<table role="grid" aria-label="Othello board"')
+    assert "table-layout:fixed;" in html
+    assert "width:2.25em;" in html
+    assert "font-family:Arial," in html
+    assert "⚪️" in html
+    assert "⚫️" in html
+    assert html.count("<tr>") == BOARD_SIZE + 1
+    assert html.count("<td") == BOARD_SIZE * BOARD_SIZE
+
+
+def test_board_to_html_can_disable_emoji() -> None:
+    """Render an ASCII fallback HTML table when emoji are disabled."""
+    html = board_to_html(initial_board(), use_emoji=False)
+
+    assert "W" in html
+    assert "B" in html
+    assert "⚪️" not in html
+    assert "⚫️" not in html
 
 
 def test_game_returns_result() -> None:
