@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The project follows semantic versioning where practical. While the major
 version is `0`, public APIs may change between minor releases.
 
-## 0.2.0 - Unreleased
+## 0.2.0 - 2026-06-29
 
 - Rename the public board value enum from `Piece` to `Cell`.
 - Move public player classes under `othellopy.players`.
