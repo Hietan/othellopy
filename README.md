@@ -25,29 +25,16 @@ Official distribution:
 
 ## Installation
 
-Install from PyPI:
+Install with pip:
 
 ```bash
-python -m pip install othellopy
+pip install othellopy
 ```
 
-Upgrade an existing PyPI installation:
+Or add it to a uv project:
 
 ```bash
-python -m pip install --upgrade othellopy
-```
-
-Check the installed version:
-
-```bash
-python -m pip show othellopy
-```
-
-Install an unreleased branch from GitHub only when you intentionally need
-development code, for example in Google Colab:
-
-```python
-!pip install git+https://github.com/Hietan/othellopy.git@main
+uv add othellopy
 ```
 
 ## Quick Start
