@@ -6,6 +6,9 @@ from othellopy.board import board_to_str, copy_board, initial_board
 from othellopy.core import Board, Piece
 from othellopy.player import BasePlayer
 
+_MAX_CONSECUTIVE_PASSES = 2
+_MOVE_LENGTH = 2
+
 MoveRecord = tuple[Piece, int, int]
 
 
@@ -43,6 +46,7 @@ class InvalidMoveError(ValueError):
         valid_moves: list[tuple[int, int]],
         board: Board,
     ) -> None:
+        """Build an error describing the rejected move."""
         self.color = color
         self.move = move
         self.valid_moves = valid_moves
@@ -63,6 +67,7 @@ class OthelloGame:
         black_player_class: type[BasePlayer],
         white_player_class: type[BasePlayer],
     ) -> None:
+        """Initialize black and white players from their classes."""
         self.black_player = black_player_class(Piece.BLACK)
         self.white_player = white_player_class(Piece.WHITE)
 
@@ -74,7 +79,7 @@ class OthelloGame:
         current_color = Piece.BLACK
         pass_count = 0
 
-        while pass_count < 2:
+        while pass_count < _MAX_CONSECUTIVE_PASSES:
             player = self._player_for(current_color)
             valid_moves = player.get_moves(board)
 
@@ -143,7 +148,7 @@ def _winner(black_score: int, white_score: int) -> Piece:
 def _is_move(move: object) -> bool:
     if not isinstance(move, tuple | list):
         return False
-    if len(move) != 2:
+    if len(move) != _MOVE_LENGTH:
         return False
     row, col = move
     return isinstance(row, int) and isinstance(col, int)

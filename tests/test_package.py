@@ -1,62 +1,94 @@
+"""Package behavior tests."""
+
+import pytest
+
 from othellopy import __version__
 from othellopy.board import board_to_str, copy_board, initial_board
-from othellopy.core import Piece
+from othellopy.core import Board, Piece
 from othellopy.game import GameResult, InvalidMoveError, OthelloGame
 from othellopy.player import BasePlayer
 
+BOARD_SIZE = 8
+INITIAL_PIECE_COUNT = 4
+PIECE_VALUES = {
+    Piece.EMPTY: 0,
+    Piece.BLACK: 1,
+    Piece.WHITE: 2,
+}
+INITIAL_BLACK_MOVES = [(2, 3), (3, 2), (4, 5), (5, 4)]
+INITIAL_WHITE_MOVES = [(2, 4), (3, 5), (4, 2), (5, 3)]
+
 
 class FirstMovePlayer(BasePlayer):
+    """Player that picks the first valid move."""
+
     def __init__(self, color: Piece) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Return the first available move."""
         return self.get_moves(board)[0]
 
 
 class LastMovePlayer(BasePlayer):
+    """Player that picks the last valid move."""
+
     def __init__(self, color: Piece) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Return the last available move."""
         return self.get_moves(board)[-1]
 
 
 class InvalidMovePlayer(BasePlayer):
+    """Player that always returns an occupied move."""
+
     def __init__(self, color: Piece) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> tuple[int, int]:
+    def next_move(self, _board: Board) -> tuple[int, int]:
+        """Return an invalid move."""
         return (0, 0)
 
 
 class BrokenMovePlayer(BasePlayer):
+    """Player that returns a malformed move."""
+
     def __init__(self, color: Piece) -> None:
+        """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, board: list[list[Piece]]) -> object:
+    def next_move(self, _board: Board) -> object:
+        """Return an object that is not a move."""
         return None
 
 
 def test_version() -> None:
+    """Expose the package version."""
     assert __version__ == "0.1.0"
 
 
 def test_piece_values() -> None:
-    assert Piece.EMPTY == 0
-    assert Piece.BLACK == 1
-    assert Piece.WHITE == 2
+    """Define stable piece enum values."""
+    assert {
+        Piece.EMPTY: int(Piece.EMPTY),
+        Piece.BLACK: int(Piece.BLACK),
+        Piece.WHITE: int(Piece.WHITE),
+    } == PIECE_VALUES
 
 
 def test_base_player_cannot_be_created_directly() -> None:
-    try:
+    """Keep BasePlayer abstract."""
+    with pytest.raises(TypeError):
         BasePlayer(Piece.BLACK)
-    except TypeError:
-        return
-
-    raise AssertionError("BasePlayer should be abstract")
 
 
 def test_player_sets_colors() -> None:
+    """Set player and opponent colors during initialization."""
     player = FirstMovePlayer(Piece.BLACK)
 
     assert player.color == Piece.BLACK
@@ -64,43 +96,34 @@ def test_player_sets_colors() -> None:
 
 
 def test_empty_color_is_rejected() -> None:
-    try:
+    """Reject empty cells as player colors."""
+    with pytest.raises(ValueError, match=r"color must be Piece\.BLACK or Piece\.WHITE"):
         FirstMovePlayer(Piece.EMPTY)
-    except ValueError:
-        return
-
-    raise AssertionError("Piece.EMPTY should not be accepted as a player color")
 
 
 def test_black_moves_from_initial_board() -> None:
+    """Find the legal black moves from the initial board."""
     player = FirstMovePlayer(Piece.BLACK)
 
-    assert set(player.get_moves(initial_board())) == {
-        (2, 3),
-        (3, 2),
-        (4, 5),
-        (5, 4),
-    }
+    assert player.get_moves(initial_board()) == INITIAL_BLACK_MOVES
 
 
 def test_white_moves_from_initial_board() -> None:
+    """Find the legal white moves from the initial board."""
     player = FirstMovePlayer(Piece.WHITE)
 
-    assert set(player.get_moves(initial_board())) == {
-        (2, 4),
-        (3, 5),
-        (4, 2),
-        (5, 3),
-    }
+    assert player.get_moves(initial_board()) == INITIAL_WHITE_MOVES
 
 
 def test_get_flips_for_valid_move() -> None:
+    """Return flipped pieces for a valid move."""
     player = FirstMovePlayer(Piece.BLACK)
 
     assert player.get_flips(initial_board(), 2, 3) == [(3, 3)]
 
 
 def test_invalid_moves_return_false() -> None:
+    """Report invalid moves as false."""
     player = FirstMovePlayer(Piece.BLACK)
     board = initial_board()
 
@@ -110,12 +133,14 @@ def test_invalid_moves_return_false() -> None:
 
 
 def test_next_move_returns_first_valid_move() -> None:
+    """Return the first valid move from FirstMovePlayer."""
     player = FirstMovePlayer(Piece.BLACK)
 
     assert player.next_move(initial_board()) == (2, 3)
 
 
 def test_board_helpers() -> None:
+    """Create, copy, and render boards."""
     board = initial_board()
     board_copy = copy_board(board)
 
@@ -126,19 +151,21 @@ def test_board_helpers() -> None:
 
 
 def test_game_returns_result() -> None:
+    """Play a game and return a populated result."""
     result = OthelloGame(FirstMovePlayer, LastMovePlayer).play()
 
     assert isinstance(result, GameResult)
     assert result.winner in (Piece.EMPTY, Piece.BLACK, Piece.WHITE)
-    assert result.black_score + result.white_score <= 64
-    assert result.black_score + result.white_score > 4
+    assert result.black_score + result.white_score <= BOARD_SIZE * BOARD_SIZE
+    assert result.black_score + result.white_score > INITIAL_PIECE_COUNT
     assert result.moves[0] == (Piece.BLACK, 2, 3)
     assert result.turns[0].color == Piece.BLACK
-    assert result.turns[0].valid_moves == [(2, 3), (3, 2), (4, 5), (5, 4)]
+    assert result.turns[0].valid_moves == INITIAL_BLACK_MOVES
     assert result.turns[0].move == (2, 3)
 
 
 def test_game_ends_with_no_valid_moves() -> None:
+    """Stop the game once neither player has valid moves."""
     result = OthelloGame(FirstMovePlayer, FirstMovePlayer).play()
     black_player = FirstMovePlayer(Piece.BLACK)
     white_player = FirstMovePlayer(Piece.WHITE)
@@ -148,23 +175,23 @@ def test_game_ends_with_no_valid_moves() -> None:
 
 
 def test_game_rejects_invalid_move() -> None:
-    try:
+    """Reject moves that are not legal for the current board."""
+    with pytest.raises(InvalidMoveError) as error_info:
         OthelloGame(InvalidMovePlayer, FirstMovePlayer).play()
-    except InvalidMoveError as error:
-        assert error.move == (0, 0)
-        assert error.valid_moves == [(2, 3), (3, 2), (4, 5), (5, 4)]
-        assert "Valid moves:" in str(error)
-        assert "0 1 2 3 4 5 6 7" in str(error)
-    else:
-        raise AssertionError("invalid moves should raise InvalidMoveError")
+
+    error = error_info.value
+    assert error.move == (0, 0)
+    assert error.valid_moves == INITIAL_BLACK_MOVES
+    assert "Valid moves:" in str(error)
+    assert "0 1 2 3 4 5 6 7" in str(error)
 
 
 def test_game_rejects_broken_move_shape() -> None:
-    try:
+    """Reject moves with an invalid shape."""
+    with pytest.raises(InvalidMoveError) as error_info:
         OthelloGame(BrokenMovePlayer, FirstMovePlayer).play()
-    except InvalidMoveError as error:
-        assert error.move is None
-        assert error.valid_moves == [(2, 3), (3, 2), (4, 5), (5, 4)]
-        assert "Valid moves:" in str(error)
-    else:
-        raise AssertionError("broken moves should raise InvalidMoveError")
+
+    error = error_info.value
+    assert error.move is None
+    assert error.valid_moves == INITIAL_BLACK_MOVES
+    assert "Valid moves:" in str(error)
