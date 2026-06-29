@@ -147,7 +147,8 @@ def test_board_helpers() -> None:
     assert board_copy == board
     assert board_copy is not board
     assert board_copy[0] is not board[0]
-    assert board_to_str(board).splitlines()[0] == "  0 1 2 3 4 5 6 7"
+    assert board_to_str(board, use_emoji=True).splitlines()[4] == "3 . . . ⚪️ ⚫️ . . ."
+    assert board_to_str(board, use_emoji=False).splitlines()[4] == "3 . . . W B . . ."
 
 
 def test_game_returns_result() -> None:

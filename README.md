@@ -52,7 +52,9 @@ print(result.winner)
 print(result.black_score, result.white_score)
 ```
 
-Use board helpers when debugging in notebooks.
+Use board helpers when debugging in notebooks. Board output uses `⚫️` and `⚪️`
+when the output encoding supports them, and falls back to `B` and `W`
+otherwise.
 
 ```python
 from othellopy.board import print_board
