@@ -7,7 +7,6 @@ import builtins
 import contextlib
 import dis
 import inspect
-import io
 import signal
 import sys
 import textwrap
@@ -28,7 +27,6 @@ if TYPE_CHECKING:
 _DEFAULT_MAX_SECONDS = 1.0
 _BOARD_SIZE = 8
 _MOVE_LENGTH = 2
-_MAX_OUTPUT_CHARS = 0
 
 _BANNED_MODULES = {
     "asyncio",
@@ -69,7 +67,6 @@ _BANNED_CALLS = {
     "input",
     "locals",
     "open",
-    "print",
     "setattr",
     "vars",
 }
@@ -85,16 +82,6 @@ _BANNED_ATTRIBUTES = {
     "__mro__",
     "__subclasses__",
 }
-_MUTATING_METHODS = {
-    "append",
-    "clear",
-    "extend",
-    "insert",
-    "pop",
-    "remove",
-    "reverse",
-    "sort",
-}
 _ALLOWED_BUILTIN_GLOBALS = {
     "abs",
     "all",
@@ -108,6 +95,7 @@ _ALLOWED_BUILTIN_GLOBALS = {
     "list",
     "max",
     "min",
+    "print",
     "range",
     "reversed",
     "round",
@@ -213,7 +201,9 @@ def validate_detail(
             ValidationIssue(
                 "source-unavailable",
                 "Could not inspect the Player source code. Define the class in a "
-                "normal Python cell or file, then run validation again.",
+                "normal Python cell or file to enable static checks. Runtime "
+                "checks will still run.",
+                ValidationSeverity.WARNING,
             )
         )
     else:
@@ -317,12 +307,6 @@ class _StaticValidationVisitor(ast.NodeVisitor):
                 node.lineno,
                 f"Calling {call_name}() is not allowed in submitted players.",
             )
-        if _is_board_mutating_call(node):
-            self._add(
-                "board-mutation",
-                node.lineno,
-                "Do not mutate the board passed to next_move().",
-            )
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -335,15 +319,12 @@ class _StaticValidationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign) -> None:
-        self._validate_assignment_targets(node.targets, node.lineno)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        self._validate_assignment_targets([node.target], node.lineno)
         self.generic_visit(node)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
-        self._validate_assignment_targets([node.target], node.lineno)
         self.generic_visit(node)
 
     def _validate_module(self, module_name: str, lineno: int) -> None:
@@ -365,19 +346,6 @@ class _StaticValidationVisitor(ast.NodeVisitor):
             f"External package {module_name!r} is not allowed. Use only the "
             "Python standard library and othellopy.",
         )
-
-    def _validate_assignment_targets(
-        self,
-        targets: list[ast.expr],
-        lineno: int,
-    ) -> None:
-        for target in targets:
-            if _is_board_target(target):
-                self._add(
-                    "board-mutation",
-                    lineno,
-                    "Do not assign to the board passed to next_move().",
-                )
 
     def _add(self, code: str, lineno: int, message: str) -> None:
         self.issues.append(
@@ -523,24 +491,19 @@ def _runtime_cases() -> list[_RuntimeCase]:
     ]
 
 
-def _validate_runtime_case(  # noqa: PLR0911
+def _validate_runtime_case(
     player_class: type[BasePlayer],
     case: _RuntimeCase,
     *,
     max_seconds: float,
 ) -> tuple[ValidationIssue | None, float | None]:
     board = copy_board(case.board)
-    before = copy_board(board)
     valid_moves = _valid_moves(case.board, case.color)
     player = player_class(case.color)
 
-    stdout = io.StringIO()
-    stderr = io.StringIO()
     start = time.perf_counter()
     try:
-        with _time_limit(max_seconds), contextlib.redirect_stdout(
-            stdout
-        ), contextlib.redirect_stderr(stderr):
+        with _time_limit(max_seconds):
             move = player.next_move(board)
     except _MoveTimeoutError:
         return (
@@ -565,25 +528,6 @@ def _validate_runtime_case(  # noqa: PLR0911
             ValidationIssue(
                 "timeout",
                 f"{case.name}: next_move() took {elapsed:.3g} seconds.",
-            ),
-            elapsed,
-        )
-
-    output = stdout.getvalue() + stderr.getvalue()
-    if len(output) > _MAX_OUTPUT_CHARS:
-        return (
-            ValidationIssue(
-                "output",
-                f"{case.name}: next_move() must not print or write output.",
-            ),
-            elapsed,
-        )
-
-    if board != before:
-        return (
-            ValidationIssue(
-                "board-mutated",
-                f"{case.name}: next_move() changed the board argument.",
             ),
             elapsed,
         )
@@ -669,22 +613,6 @@ def _call_name(func: ast.expr) -> str | None:
     if isinstance(func, ast.Attribute):
         return func.attr
     return None
-
-
-def _is_board_target(target: ast.expr) -> bool:
-    if isinstance(target, ast.Subscript):
-        return _is_board_target(target.value)
-    if isinstance(target, ast.Attribute):
-        return _is_board_target(target.value)
-    return isinstance(target, ast.Name) and target.id == "board"
-
-
-def _is_board_mutating_call(node: ast.Call) -> bool:
-    if not isinstance(node.func, ast.Attribute):
-        return False
-    if node.func.attr not in _MUTATING_METHODS:
-        return False
-    return _is_board_target(node.func.value)
 
 
 def _is_allowed_module(module_name: str) -> bool:
