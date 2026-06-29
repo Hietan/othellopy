@@ -106,6 +106,12 @@ Run tests:
 uv run pytest
 ```
 
+Run type checks:
+
+```bash
+uv run mypy src/othellopy
+```
+
 Build distributions:
 
 ```bash
