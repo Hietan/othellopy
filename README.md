@@ -349,8 +349,8 @@ Contributions must follow the GitFlow rules in
 
 - `feat/*` pull requests target `dev`.
 - `release/*` pull requests target `main`.
-- Direct pushes to `main` are not allowed.
-- Maintainer approval is required before merge.
+- Direct pushes to `main` and `dev` are not allowed.
+- Required checks must pass before merge.
 
 ## Security
 

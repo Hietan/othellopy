@@ -55,10 +55,10 @@ Pull request routing:
 - Open `dependabot/*` pull requests into `dev`.
 - Open `release/*` pull requests into `main`.
 - Do not open `feat/*` pull requests directly into `main`.
-- `main` requires maintainer approval and passing required checks.
+- `main` requires a release pull request and passing required checks.
 
-Direct pushes to `main`, force pushes, and branch deletion should be blocked by
-GitHub branch protection or rulesets.
+Direct pushes to `main` and `dev`, force pushes, and branch deletion should be
+blocked by GitHub branch protection or rulesets.
 
 ## Commit Messages
 
@@ -101,8 +101,8 @@ Report the buggy player as the loser when it returns an illegal move.
 ## Releases
 
 Only maintainers publish to PyPI. Releases are prepared from `dev` on a
-`release/vX.Y.Z` branch, reviewed into `main`, tagged as `vX.Y.Z`, and
-published by the GitHub Actions `Publish` workflow.
+`release/vX.Y.Z` branch, merged into `main`, tagged as `vX.Y.Z`, and published
+by the GitHub Actions `Publish` workflow.
 
 Before opening a release pull request:
 

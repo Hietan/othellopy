@@ -1,5 +1,5 @@
-# Require Hietan review for repository changes when GitHub branch protection
-# enables "Require review from Code Owners".
+# Document repository ownership. Code Owner review is optional in the
+# single-maintainer fork-based workflow.
 * @Hietan
 
 # Extra-sensitive project health and release files.

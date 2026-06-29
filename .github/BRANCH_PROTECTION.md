@@ -10,9 +10,8 @@ Configure these settings in GitHub before treating the repository as protected.
 Create rules for `main`:
 
 - Require a pull request before merging.
-- Require at least 1 approval.
-- Require review from Code Owners.
-- Dismiss stale approvals when new commits are pushed.
+- Set required approvals to `0` for the single-maintainer fork-based workflow.
+- Do not require Code Owner review.
 - Require status checks to pass before merging:
   - `Branch Policy / gitflow`
   - `CI / required`
@@ -25,9 +24,8 @@ Create rules for `main`:
 Create rules for `dev`:
 
 - Require a pull request before merging.
-- Require at least 1 approval.
-- Require review from Code Owners.
-- Dismiss stale approvals when new commits are pushed.
+- Set required approvals to `0` for the single-maintainer fork-based workflow.
+- Do not require Code Owner review.
 - Require status checks to pass before merging:
   - `Branch Policy / gitflow`
   - `CI / required`
@@ -46,14 +44,23 @@ Allowed working branches:
 - `release/*` for release preparation.
 - `dependabot/*` for automated dependency update pull requests to `dev`.
 
-Do not push directly to `main`. Do not merge `feat/*` directly into `main`.
+Do not push directly to `main` or `dev`. Do not merge `feat/*` directly into
+`main`.
 Set the repository default branch to `dev` so new development pull requests and
 Dependabot security updates target the integration branch by default.
 
-## Approval Ownership
+## Review Policy
 
-`.github/CODEOWNERS` assigns ownership to `@Hietan`. With code owner review
-enabled, pull requests require Hietan approval before merge.
+This repository is maintained by a single maintainer. External contributors are
+expected to work from forks and open pull requests; they cannot push or merge
+directly into `dev` or `main`.
+
+Maintainer review is optional rather than a required GitHub gate. Required
+status checks, branch routing, force-push blocking, and branch deletion blocking
+are the enforced safeguards.
+
+`.github/CODEOWNERS` documents ownership, but Code Owner review should not be
+required while the repository uses this single-maintainer workflow.
 
 ## PyPI Publishing
 

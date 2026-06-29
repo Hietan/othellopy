@@ -9,7 +9,7 @@ Releases follow the repository GitFlow rules:
 - Feature work is merged into `dev` through `feat/*` pull requests.
 - Release preparation happens on `release/vX.Y.Z` branches.
 - Release pull requests target `main`.
-- `main` requires maintainer approval and passing checks.
+- Release pull requests require passing checks before merge.
 
 ## Versioning
 
@@ -40,7 +40,8 @@ Use PEP 440-compatible versions and SemVer-style meaning where practical:
    ```
 
 8. Open a pull request from `release/vX.Y.Z` to `main`.
-9. Merge only after approval and required checks pass.
+9. Merge after required checks pass and the maintainer confirms the release
+   contents.
 10. Tag the merge commit on `main`:
 
     ```bash
