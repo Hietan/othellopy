@@ -1,5 +1,7 @@
 """Board helpers for Othello/Reversi exercises."""
 
+import sys
+
 from othellopy.core import Board, Piece
 
 
@@ -29,7 +31,7 @@ def board_to_str(board: Board) -> str:
 
 def print_board(board: Board) -> None:
     """Print a readable board for notebooks and debugging."""
-    print(board_to_str(board))
+    sys.stdout.write(f"{board_to_str(board)}\n")
 
 
 def _piece_to_mark(piece: Piece) -> str:

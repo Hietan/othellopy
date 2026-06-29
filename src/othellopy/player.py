@@ -21,6 +21,7 @@ class BasePlayer(ABC):
 
     @abstractmethod
     def __init__(self, color: Piece) -> None:
+        """Initialize a player with a black or white piece color."""
         color = Piece(color)
         if color not in (Piece.BLACK, Piece.WHITE):
             msg = "color must be Piece.BLACK or Piece.WHITE"
