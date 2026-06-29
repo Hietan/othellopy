@@ -5,6 +5,7 @@
 ## Checklist
 
 - [ ] The change follows the GitFlow branch rules in `CONTRIBUTING.md`.
+- [ ] Commit messages follow the format in `CONTRIBUTING.md`.
 - [ ] Tests were added or updated when behavior changed.
 - [ ] Documentation was updated when public behavior changed.
 - [ ] `CHANGELOG.md` was updated for user-visible or public API changes.
