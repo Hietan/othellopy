@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "othellopy"
-version = "0.2.0"
+version = "0.2.1"
 description = "Small Othello/Reversi utilities and sample players for Python lessons."
 readme = "README.md"
 requires-python = ">=3.10"
