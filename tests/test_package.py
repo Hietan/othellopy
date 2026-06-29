@@ -1,11 +1,12 @@
 """Package behavior tests."""
 
 import random
+import time
 from io import StringIO
 
 import pytest
 
-from othellopy import __version__, validation
+from othellopy import __version__
 from othellopy.board import (
     board_to_html,
     board_to_str,
@@ -22,7 +23,16 @@ from othellopy.players import (
     IntermediatePlayer,
     ManualPlayer,
 )
-from othellopy.validation import validate, validate_detail
+from othellopy.validation import (
+    test_player as player_test,
+)
+from othellopy.validation import (
+    test_player_detail as player_test_detail,
+)
+from othellopy.validation import (
+    validate,
+    validate_detail,
+)
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4
@@ -57,6 +67,14 @@ class LastMovePlayer(BasePlayer):
     def next_move(self, board: Board) -> tuple[int, int]:
         """Return the last available move."""
         return self.get_moves(board)[-1]
+
+
+class NoInitPlayer(BasePlayer):
+    """Player that relies on BasePlayer.__init__."""
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Return the first available move."""
+        return self.get_moves(board)[0]
 
 
 class InvalidMovePlayer(BasePlayer):
@@ -138,6 +156,48 @@ class ExternalImportPlayer(BasePlayer):
         return self.get_moves(board)[0]
 
 
+class DormantExternalImportPlayer(BasePlayer):
+    """Player that contains an external import in unreachable code."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Contain source that a static analyzer may reject."""
+        if False:
+            import numpy as np  # noqa: PLC0415
+
+            _ = np.array([1])
+        return self.get_moves(board)[0]
+
+
+class RaisingPlayer(BasePlayer):
+    """Player that raises during move selection."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, _board: Board) -> tuple[int, int]:
+        """Raise a runtime error."""
+        msg = "boom"
+        raise RuntimeError(msg)
+
+
+class SlowPlayer(BasePlayer):
+    """Player that sleeps too long during move selection."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Sleep before returning a move."""
+        time.sleep(0.05)
+        return self.get_moves(board)[0]
+
+
 class RandomPlayer(BasePlayer):
     """Player that uses an allowed standard library module."""
 
@@ -152,7 +212,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.2"
+    assert __version__ == "0.2.3"
 
 
 def test_cell_values() -> None:
@@ -176,6 +236,15 @@ def test_player_sets_colors() -> None:
 
     assert player.color == Cell.BLACK
     assert player.opponent_color == Cell.WHITE
+
+
+def test_player_can_inherit_base_init() -> None:
+    """Allow simple players to implement only next_move."""
+    player = NoInitPlayer(Cell.BLACK)
+
+    assert player.color == Cell.BLACK
+    assert player.opponent_color == Cell.WHITE
+    assert player.next_move(initial_board()) == (2, 3)
 
 
 def test_empty_color_is_rejected() -> None:
@@ -264,12 +333,82 @@ def test_game_returns_result() -> None:
 
     assert isinstance(result, GameResult)
     assert result.winner in (Cell.EMPTY, Cell.BLACK, Cell.WHITE)
+    assert result.winner_name in ("BLACK", "WHITE", "DRAW")
     assert result.black_score + result.white_score <= BOARD_SIZE * BOARD_SIZE
     assert result.black_score + result.white_score > INITIAL_OCCUPIED_CELL_COUNT
     assert result.moves[0] == (Cell.BLACK, 2, 3)
     assert result.turns[0].color == Cell.BLACK
     assert result.turns[0].valid_moves == INITIAL_BLACK_MOVES
     assert result.turns[0].move == (2, 3)
+
+
+def test_game_result_reports_readable_winner_names() -> None:
+    """Provide display-friendly winner names."""
+    assert (
+        GameResult(
+            winner=Cell.BLACK,
+            black_score=1,
+            white_score=0,
+            board=[],
+            moves=[],
+            turns=[],
+        ).winner_name
+        == "BLACK"
+    )
+    assert (
+        GameResult(
+            winner=Cell.WHITE,
+            black_score=0,
+            white_score=1,
+            board=[],
+            moves=[],
+            turns=[],
+        ).winner_name
+        == "WHITE"
+    )
+    assert (
+        GameResult(
+            winner=Cell.EMPTY,
+            black_score=1,
+            white_score=1,
+            board=[],
+            moves=[],
+            turns=[],
+        ).winner_name
+        == "DRAW"
+    )
+
+
+def test_game_accepts_player_keyword_names() -> None:
+    """Use black_player and white_player as the notebook-friendly keywords."""
+    result = OthelloGame(
+        black_player=FirstMovePlayer,
+        white_player=LastMovePlayer,
+    ).play()
+
+    assert isinstance(result, GameResult)
+    assert result.moves[0] == (Cell.BLACK, 2, 3)
+
+
+def test_game_keeps_player_class_keyword_compatibility() -> None:
+    """Keep the old keyword names working for existing notebooks."""
+    result = OthelloGame(
+        black_player_class=FirstMovePlayer,
+        white_player_class=LastMovePlayer,
+    ).play()
+
+    assert isinstance(result, GameResult)
+    assert result.moves[0] == (Cell.BLACK, 2, 3)
+
+
+def test_game_rejects_duplicate_player_keywords() -> None:
+    """Reject ambiguous player class arguments."""
+    with pytest.raises(TypeError, match="black_player"):
+        OthelloGame(
+            FirstMovePlayer,
+            LastMovePlayer,
+            black_player_class=FirstMovePlayer,
+        )
 
 
 def test_game_ends_with_no_valid_moves() -> None:
@@ -365,58 +504,88 @@ def test_manual_player_retries_invalid_input() -> None:
     assert "Invalid move: '99'" in output.getvalue()
 
 
-def test_validate_accepts_valid_player() -> None:
+def test_player_accepts_valid_player() -> None:
     """Accept a valid submitted player."""
-    assert validate(FirstMovePlayer)
+    assert player_test(FirstMovePlayer)
 
 
-def test_validate_allows_standard_library_imports() -> None:
+def test_player_accepts_player_without_init() -> None:
+    """Accept a player that inherits BasePlayer.__init__."""
+    assert player_test(NoInitPlayer)
+
+
+def test_player_allows_standard_library_imports() -> None:
     """Allow safe standard library imports such as random."""
-    assert validate(RandomPlayer)
+    assert player_test(RandomPlayer)
 
 
-def test_validate_rejects_invalid_move_player() -> None:
+def test_player_rejects_invalid_move_player() -> None:
     """Reject players that return illegal moves."""
-    result = validate_detail(InvalidMovePlayer)
+    result = player_test_detail(InvalidMovePlayer)
 
     assert not result.passed
     assert result.errors[0].code == "illegal-move"
 
 
-def test_validate_allows_print_output() -> None:
+def test_player_allows_print_output() -> None:
     """Allow players to print while debugging in notebooks."""
-    assert validate(PrintingPlayer)
+    assert player_test(PrintingPlayer)
 
 
-def test_validate_allows_display_board() -> None:
+def test_player_allows_display_board() -> None:
     """Allow players to display boards while debugging in notebooks."""
-    assert validate(DisplayingPlayer)
+    assert player_test(DisplayingPlayer)
 
 
-def test_validate_allows_board_mutation_on_copied_board() -> None:
-    """Allow board mutation because validation passes an isolated board copy."""
-    assert validate(MutatingPlayer)
+def test_player_allows_board_mutation_on_copied_board() -> None:
+    """Allow board mutation because tests pass an isolated board copy."""
+    assert player_test(MutatingPlayer)
 
 
-def test_validate_warns_when_source_is_unavailable(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Continue runtime checks when source inspection fails in notebooks."""
-
-    def raise_os_error(_obj: object) -> str:
-        raise OSError
-
-    monkeypatch.setattr(validation.inspect, "getsource", raise_os_error)
-
-    result = validate_detail(FirstMovePlayer)
+def test_player_reports_runtime_case_details() -> None:
+    """Run a broad set of runtime board cases."""
+    result = player_test_detail(FirstMovePlayer)
 
     assert result.passed
-    assert any(issue.code == "source-unavailable" for issue in result.warnings)
+    case_names = {case["name"] for case in result.details["runtime_cases"]}
+    assert {
+        "initial-black",
+        "initial-white",
+        "black-corner",
+        "white-corner",
+        "black-edge",
+        "white-edge",
+        "black-multi-direction",
+        "white-multi-direction",
+        "black-single-move",
+        "white-single-move",
+        "black-late-game",
+        "white-late-game",
+    } <= case_names
 
 
-def test_validate_rejects_external_packages() -> None:
-    """Reject external package imports such as numpy."""
-    result = validate_detail(ExternalImportPlayer)
+def test_player_rejects_runtime_errors() -> None:
+    """Reject players that raise during runtime tests."""
+    result = player_test_detail(RaisingPlayer)
 
     assert not result.passed
-    assert any(issue.code == "external-module" for issue in result.errors)
+    assert result.errors[0].code == "runtime-error"
+
+
+def test_player_rejects_timeout() -> None:
+    """Reject players that exceed the configured time limit."""
+    result = player_test_detail(SlowPlayer, max_seconds=0.001)
+
+    assert not result.passed
+    assert result.errors[0].code == "timeout"
+
+
+def test_player_does_not_perform_static_import_checks() -> None:
+    """Leave import/package policy to the client-side static analyzer."""
+    assert player_test(DormantExternalImportPlayer)
+
+
+def test_validate_aliases_test_player() -> None:
+    """Keep the old validation API as a compatibility alias."""
+    assert validate(FirstMovePlayer) == player_test(FirstMovePlayer)
+    assert validate_detail(FirstMovePlayer).passed

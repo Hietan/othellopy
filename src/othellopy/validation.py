@@ -1,20 +1,13 @@
-"""Pre-submission validation helpers for student players."""
+"""Runtime test helpers for student players."""
 
 from __future__ import annotations
 
-import ast
-import builtins
 import contextlib
-import dis
 import inspect
 import signal
-import sys
-import textwrap
 import time
-import types
 from dataclasses import dataclass, field
 from enum import Enum
-from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 from othellopy.board import copy_board, initial_board
@@ -23,102 +16,11 @@ from othellopy.players.base import BasePlayer
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from types import FrameType
 
 _DEFAULT_MAX_SECONDS = 1.0
 _BOARD_SIZE = 8
 _MOVE_LENGTH = 2
-
-_BANNED_MODULES = {
-    "asyncio",
-    "builtins",
-    "ctypes",
-    "ftplib",
-    "glob",
-    "http",
-    "importlib",
-    "marshal",
-    "multiprocessing",
-    "os",
-    "pathlib",
-    "pickle",
-    "runpy",
-    "shlex",
-    "shutil",
-    "signal",
-    "socket",
-    "ssl",
-    "subprocess",
-    "sys",
-    "tempfile",
-    "threading",
-    "urllib",
-    "webbrowser",
-}
-_BANNED_CALLS = {
-    "__import__",
-    "breakpoint",
-    "compile",
-    "delattr",
-    "dir",
-    "eval",
-    "exec",
-    "getattr",
-    "globals",
-    "input",
-    "locals",
-    "open",
-    "setattr",
-    "vars",
-}
-_BANNED_ATTRIBUTES = {
-    "__bases__",
-    "__builtins__",
-    "__class__",
-    "__code__",
-    "__dict__",
-    "__func__",
-    "__getattribute__",
-    "__globals__",
-    "__mro__",
-    "__subclasses__",
-}
-_ALLOWED_BUILTIN_GLOBALS = {
-    "abs",
-    "all",
-    "any",
-    "bool",
-    "dict",
-    "enumerate",
-    "float",
-    "int",
-    "len",
-    "list",
-    "max",
-    "min",
-    "print",
-    "range",
-    "reversed",
-    "round",
-    "set",
-    "sorted",
-    "str",
-    "sum",
-    "super",
-    "tuple",
-    "zip",
-}
-_ALLOWED_GLOBAL_OBJECTS = {
-    "BasePlayer",
-    "Board",
-    "Cell",
-    "Move",
-}
-_ALLOWED_OTHELLOPY_MODULES = {
-    "othellopy",
-    "othellopy.board",
-    "othellopy.core",
-    "othellopy.players",
-}
 
 
 class ValidationSeverity(str, Enum):
@@ -139,7 +41,7 @@ class ValidationIssue:
 
 @dataclass(frozen=True)
 class ValidationResult:
-    """Detailed result returned by validate_detail()."""
+    """Detailed result returned by test_player_detail()."""
 
     passed: bool
     issues: list[ValidationIssue]
@@ -181,8 +83,12 @@ def validate(
     *,
     max_seconds: float = _DEFAULT_MAX_SECONDS,
 ) -> bool:
-    """Return True if player_class passes the pre-submission checks."""
-    return validate_detail(player_class, max_seconds=max_seconds).passed
+    """
+    Return True if player_class passes the runtime tests.
+
+    Prefer test_player() for new course materials.
+    """
+    return test_player(player_class, max_seconds=max_seconds)
 
 
 def validate_detail(
@@ -190,28 +96,36 @@ def validate_detail(
     *,
     max_seconds: float = _DEFAULT_MAX_SECONDS,
 ) -> ValidationResult:
-    """Return detailed pre-submission validation results for player_class."""
+    """
+    Return detailed runtime test results.
+
+    Prefer test_player_detail() for new course materials.
+    """
+    return test_player_detail(player_class, max_seconds=max_seconds)
+
+
+def _test_player(
+    player_class: type[BasePlayer],
+    *,
+    max_seconds: float = _DEFAULT_MAX_SECONDS,
+) -> bool:
+    """Return True if player_class passes the runtime player tests."""
+    return test_player_detail(player_class, max_seconds=max_seconds).passed
+
+
+def _test_player_detail(
+    player_class: type[BasePlayer],
+    *,
+    max_seconds: float = _DEFAULT_MAX_SECONDS,
+) -> ValidationResult:
+    """Return detailed runtime test results for player_class."""
     issues: list[ValidationIssue] = []
-    details: dict[str, Any] = {"max_seconds": max_seconds}
+    details: dict[str, Any] = {
+        "max_seconds": max_seconds,
+        "validation_kind": "runtime_player_tests",
+    }
 
     issues.extend(_validate_class_shape(player_class))
-    source = _source_for(player_class)
-    if source is None:
-        issues.append(
-            ValidationIssue(
-                "source-unavailable",
-                "Could not inspect the Player source code. Define the class in a "
-                "normal Python cell or file to enable static checks. Runtime "
-                "checks will still run.",
-                ValidationSeverity.WARNING,
-            )
-        )
-    else:
-        details["source_length"] = len(source)
-        issues.extend(_validate_source(source))
-
-    issues.extend(_validate_global_usage(player_class))
-
     if not _has_errors(issues):
         runtime_issues, runtime_details = _validate_runtime(
             player_class,
@@ -233,7 +147,8 @@ def _validate_class_shape(player_class: type[BasePlayer]) -> list[ValidationIssu
         return [
             ValidationIssue(
                 "not-class",
-                "validate() expects a Player class, such as validate(MyPlayer).",
+                "test_player() expects a Player class, such as "
+                "test_player(MyPlayer).",
             )
         ]
 
@@ -256,172 +171,10 @@ def _validate_class_shape(player_class: type[BasePlayer]) -> list[ValidationIssu
     return issues
 
 
-def _source_for(player_class: type[BasePlayer]) -> str | None:
-    try:
-        return textwrap.dedent(inspect.getsource(player_class))
-    except (OSError, TypeError):
-        return None
-
-
-def _validate_source(source: str) -> list[ValidationIssue]:
-    try:
-        tree = ast.parse(source)
-    except SyntaxError as exc:
-        return [
-            ValidationIssue(
-                "syntax-error",
-                f"Player source has a syntax error: {exc.msg}.",
-            )
-        ]
-
-    visitor = _StaticValidationVisitor()
-    visitor.visit(tree)
-    return visitor.issues
-
-
-class _StaticValidationVisitor(ast.NodeVisitor):
-    def __init__(self) -> None:
-        self.issues: list[ValidationIssue] = []
-
-    def visit_Import(self, node: ast.Import) -> None:
-        for alias in node.names:
-            self._validate_module(alias.name, node.lineno)
-        self.generic_visit(node)
-
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.module is None:
-            self._add(
-                "relative-import",
-                node.lineno,
-                "Relative imports are not allowed.",
-            )
-        else:
-            self._validate_module(node.module, node.lineno)
-        self.generic_visit(node)
-
-    def visit_Call(self, node: ast.Call) -> None:
-        call_name = _call_name(node.func)
-        if call_name in _BANNED_CALLS:
-            self._add(
-                "banned-call",
-                node.lineno,
-                f"Calling {call_name}() is not allowed in submitted players.",
-            )
-        self.generic_visit(node)
-
-    def visit_Attribute(self, node: ast.Attribute) -> None:
-        if node.attr in _BANNED_ATTRIBUTES:
-            self._add(
-                "banned-attribute",
-                node.lineno,
-                f"Accessing {node.attr} is not allowed in submitted players.",
-            )
-        self.generic_visit(node)
-
-    def visit_Assign(self, node: ast.Assign) -> None:
-        self.generic_visit(node)
-
-    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        self.generic_visit(node)
-
-    def visit_AugAssign(self, node: ast.AugAssign) -> None:
-        self.generic_visit(node)
-
-    def _validate_module(self, module_name: str, lineno: int) -> None:
-        top_level = module_name.split(".", maxsplit=1)[0]
-        if top_level in _BANNED_MODULES:
-            self._add(
-                "banned-module",
-                lineno,
-                f"Importing {module_name!r} is not allowed.",
-            )
-            return
-
-        if _is_allowed_module(module_name):
-            return
-
-        self._add(
-            "external-module",
-            lineno,
-            f"External package {module_name!r} is not allowed. Use only the "
-            "Python standard library and othellopy.",
-        )
-
-    def _add(self, code: str, lineno: int, message: str) -> None:
-        self.issues.append(
-            ValidationIssue(
-                code,
-                f"Line {lineno}: {message}",
-            )
-        )
-
-
-def _validate_global_usage(player_class: type[BasePlayer]) -> list[ValidationIssue]:
-    issues: list[ValidationIssue] = []
-    for method_name, method in player_class.__dict__.items():
-        if not inspect.isfunction(method):
-            continue
-        issues.extend(
-            _validate_code_globals(method.__code__, method.__globals__, method_name)
-        )
-    return issues
-
-
-def _validate_code_globals(
-    code: types.CodeType,
-    globals_: dict[str, Any],
-    context: str,
-) -> list[ValidationIssue]:
-    issues: list[ValidationIssue] = []
-    for name in _load_global_names(code):
-        if name in _BANNED_CALLS:
-            issues.append(
-                ValidationIssue(
-                    "banned-call",
-                    f"{context} uses banned global {name!r}.",
-                )
-            )
-            continue
-        if name in _ALLOWED_BUILTIN_GLOBALS or name in _ALLOWED_GLOBAL_OBJECTS:
-            continue
-        if name in vars(builtins):
-            issues.append(
-                ValidationIssue(
-                    "banned-builtin",
-                    f"{context} uses builtin {name!r}, which is not allowed.",
-                )
-            )
-            continue
-        if name not in globals_:
-            issues.append(
-                ValidationIssue(
-                    "unknown-global",
-                    f"{context} uses global name {name!r}. Keep submitted players "
-                    "self-contained.",
-                )
-            )
-            continue
-        if not _is_allowed_global_object(globals_[name]):
-            issues.append(
-                ValidationIssue(
-                    "external-global",
-                    f"{context} uses global name {name!r} from a disallowed module.",
-                )
-            )
-
-    for constant in code.co_consts:
-        if isinstance(constant, types.CodeType):
-            issues.extend(_validate_code_globals(constant, globals_, context))
-
-    return issues
-
-
-def _load_global_names(code: types.CodeType) -> set[str]:
-    names = set()
-    for instruction in dis.get_instructions(code):
-        if instruction.opname in {"LOAD_GLOBAL", "LOAD_NAME"}:
-            names.add(str(instruction.argval))
-    return names
+test_player = _test_player
+test_player_detail = _test_player_detail
+test_player.__test__ = False  # type: ignore[attr-defined]
+test_player_detail.__test__ = False  # type: ignore[attr-defined]
 
 
 def _validate_runtime(
@@ -450,6 +203,7 @@ def _validate_runtime(
             {
                 "name": case.name,
                 "color": case.color.name,
+                "valid_moves": case.valid_moves,
                 "elapsed_seconds": elapsed,
             }
         )
@@ -478,17 +232,34 @@ class _RuntimeCase:
     name: str
     color: Cell
     board: Board
+    valid_moves: list[Move]
 
 
 def _runtime_cases() -> list[_RuntimeCase]:
-    return [
-        _RuntimeCase("initial-black", Cell.BLACK, initial_board()),
-        _RuntimeCase("initial-white", Cell.WHITE, initial_board()),
-        _RuntimeCase("black-corner", Cell.BLACK, _corner_board(Cell.BLACK)),
-        _RuntimeCase("white-corner", Cell.WHITE, _corner_board(Cell.WHITE)),
-        _RuntimeCase("black-single-move", Cell.BLACK, _single_move_board(Cell.BLACK)),
-        _RuntimeCase("white-single-move", Cell.WHITE, _single_move_board(Cell.WHITE)),
+    cases = [
+        _case("initial-black", Cell.BLACK, initial_board()),
+        _case("initial-white", Cell.WHITE, initial_board()),
+        _case("black-corner", Cell.BLACK, _corner_board(Cell.BLACK)),
+        _case("white-corner", Cell.WHITE, _corner_board(Cell.WHITE)),
+        _case("black-edge", Cell.BLACK, _edge_board(Cell.BLACK)),
+        _case("white-edge", Cell.WHITE, _edge_board(Cell.WHITE)),
+        _case("black-multi-direction", Cell.BLACK, _multi_direction_board(Cell.BLACK)),
+        _case("white-multi-direction", Cell.WHITE, _multi_direction_board(Cell.WHITE)),
+        _case("black-single-move", Cell.BLACK, _single_move_board(Cell.BLACK)),
+        _case("white-single-move", Cell.WHITE, _single_move_board(Cell.WHITE)),
+        _case("black-late-game", Cell.BLACK, _late_game_board(Cell.BLACK)),
+        _case("white-late-game", Cell.WHITE, _late_game_board(Cell.WHITE)),
     ]
+    return [case for case in cases if case.valid_moves]
+
+
+def _case(name: str, color: Cell, board: Board) -> _RuntimeCase:
+    return _RuntimeCase(
+        name=name,
+        color=color,
+        board=board,
+        valid_moves=_valid_moves(board, color),
+    )
 
 
 def _validate_runtime_case(
@@ -498,7 +269,6 @@ def _validate_runtime_case(
     max_seconds: float,
 ) -> tuple[ValidationIssue | None, float | None]:
     board = copy_board(case.board)
-    valid_moves = _valid_moves(case.board, case.color)
     player = player_class(case.color)
 
     start = time.perf_counter()
@@ -541,12 +311,13 @@ def _validate_runtime_case(
             elapsed,
         )
 
-    if tuple(move) not in valid_moves:
+    normalized_move: Move = (move[0], move[1])
+    if normalized_move not in case.valid_moves:
         return (
             ValidationIssue(
                 "illegal-move",
-                f"{case.name}: next_move() returned {tuple(move)!r}; valid moves "
-                f"are {valid_moves}.",
+                f"{case.name}: next_move() returned {normalized_move!r}; valid moves "
+                f"are {case.valid_moves}.",
             ),
             elapsed,
         )
@@ -560,7 +331,7 @@ def _time_limit(seconds: float) -> Iterator[None]:
         yield
         return
 
-    def handler(_signum: int, _frame: types.FrameType | None) -> None:
+    def handler(_signum: int, _frame: FrameType | None) -> None:
         msg = "next_move timed out"
         raise _MoveTimeoutError(msg)
 
@@ -590,60 +361,69 @@ def _is_move(move: object) -> bool:
 
 def _corner_board(color: Cell) -> Board:
     board = [[Cell.EMPTY for _ in range(_BOARD_SIZE)] for _ in range(_BOARD_SIZE)]
-    opponent = Cell.WHITE if color == Cell.BLACK else Cell.BLACK
-    board[0][1] = opponent
+    other_color = _other_color(color)
+    board[0][1] = other_color
     board[0][2] = color
-    board[1][0] = opponent
+    board[1][0] = other_color
     board[2][0] = color
     return board
 
 
+def _edge_board(color: Cell) -> Board:
+    board = [[Cell.EMPTY for _ in range(_BOARD_SIZE)] for _ in range(_BOARD_SIZE)]
+    other_color = _other_color(color)
+    board[0][2] = color
+    board[0][3] = other_color
+    board[0][4] = other_color
+    board[0][5] = Cell.EMPTY
+    board[1][5] = other_color
+    board[2][5] = color
+    return board
+
+
+def _multi_direction_board(color: Cell) -> Board:
+    board = [[Cell.EMPTY for _ in range(_BOARD_SIZE)] for _ in range(_BOARD_SIZE)]
+    other_color = _other_color(color)
+    center = 3
+    for row_step, col_step in (
+        (-1, -1),
+        (-1, 0),
+        (-1, 1),
+        (0, -1),
+        (0, 1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+    ):
+        board[center + row_step][center + col_step] = other_color
+        board[center + row_step * 2][center + col_step * 2] = color
+    board[center][center] = Cell.EMPTY
+    return board
+
+
 def _single_move_board(color: Cell) -> Board:
-    opponent = Cell.WHITE if color == Cell.BLACK else Cell.BLACK
-    board = [[opponent for _ in range(_BOARD_SIZE)] for _ in range(_BOARD_SIZE)]
+    other_color = _other_color(color)
+    board = [[other_color for _ in range(_BOARD_SIZE)] for _ in range(_BOARD_SIZE)]
     board[0][0] = Cell.EMPTY
-    board[0][1] = opponent
+    board[0][1] = other_color
     board[0][2] = color
     return board
 
 
-def _call_name(func: ast.expr) -> str | None:
-    if isinstance(func, ast.Name):
-        return func.id
-    if isinstance(func, ast.Attribute):
-        return func.attr
-    return None
+def _late_game_board(color: Cell) -> Board:
+    other_color = _other_color(color)
+    board = [[color for _ in range(_BOARD_SIZE)] for _ in range(_BOARD_SIZE)]
+    board[6][6] = other_color
+    board[6][7] = other_color
+    board[7][6] = other_color
+    board[7][7] = Cell.EMPTY
+    return board
 
 
-def _is_allowed_module(module_name: str) -> bool:
-    if module_name in _ALLOWED_OTHELLOPY_MODULES:
-        return True
-    if module_name.startswith("othellopy."):
-        return module_name.rsplit(".", maxsplit=1)[0] in _ALLOWED_OTHELLOPY_MODULES
-    top_level = module_name.split(".", maxsplit=1)[0]
-    return top_level in sys.stdlib_module_names
-
-
-def _is_allowed_global_object(value: object) -> bool:
-    if inspect.ismodule(value):
-        return _is_allowed_object_module(value)
-
-    module_name = getattr(value, "__module__", None)
-    if not isinstance(module_name, str):
-        return False
-    return (
-        _is_allowed_module(module_name)
-        and _module_top_level(module_name) not in _BANNED_MODULES
-    )
-
-
-def _is_allowed_object_module(module: ModuleType) -> bool:
-    name = module.__name__
-    return _is_allowed_module(name) and _module_top_level(name) not in _BANNED_MODULES
-
-
-def _module_top_level(module_name: str) -> str:
-    return module_name.split(".", maxsplit=1)[0]
+def _other_color(color: Cell) -> Cell:
+    if color == Cell.BLACK:
+        return Cell.WHITE
+    return Cell.BLACK
 
 
 def _has_errors(issues: list[ValidationIssue]) -> bool:
@@ -654,6 +434,8 @@ __all__ = [
     "ValidationIssue",
     "ValidationResult",
     "ValidationSeverity",
+    "test_player",
+    "test_player_detail",
     "validate",
     "validate_detail",
 ]

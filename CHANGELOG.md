@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The project follows semantic versioning where practical. While the major
 version is `0`, public APIs may change between minor releases.
 
+## 0.2.3 - 2026-06-29
+
+- Rename the recommended runtime check API to `test_player()` and
+  `test_player_detail()`, keeping `validate()` and `validate_detail()` as
+  compatibility aliases.
+- Make `BasePlayer.__init__` inheritable so beginner players can implement only
+  `next_move()`.
+- Prefer `display_board()` for both notebook and terminal board output while
+  keeping `print_board()` as a text-output compatibility helper.
+- Prefer `black_player=` and `white_player=` keyword arguments in
+  `OthelloGame`, keeping the previous `*_player_class` names compatible.
+- Add `GameResult.winner_name` for display-friendly `BLACK`, `WHITE`, or
+  `DRAW` output.
+- Expand runtime player tests across more board states and keep validation
+  dynamic-only for Google Colab workflows.
+
+## 0.2.2 - 2026-06-29
+
+- Allow `print()` and `display_board()` during player checks for Google Colab
+  debugging.
+- Pass copied boards into player checks and games so accidental board mutation
+  does not change the real game state.
+- Continue runtime checks even when source inspection is unavailable in notebook
+  environments.
+
 ## 0.2.1 - 2026-06-29
 
 - Add `board_to_html()` and `display_board()` for fixed-cell notebook board
