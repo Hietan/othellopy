@@ -3,7 +3,7 @@
 from random import Random
 
 from othellopy.core import Board, Cell, Move
-from othellopy.player import BasePlayer
+from othellopy.players.base import BasePlayer
 
 
 class BeginnerPlayer(BasePlayer):

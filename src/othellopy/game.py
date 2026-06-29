@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from othellopy.board import board_to_str, copy_board, initial_board
 from othellopy.core import Board, Cell
-from othellopy.player import BasePlayer
+from othellopy.players.base import BasePlayer
 
 _MAX_CONSECUTIVE_PASSES = 2
 _MOVE_LENGTH = 2

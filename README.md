@@ -15,7 +15,7 @@ Then import the package:
 ```python
 from othellopy.core import Cell
 from othellopy.game import OthelloGame
-from othellopy.player import BasePlayer
+from othellopy.players import BasePlayer
 ```
 
 ## Player example
@@ -24,7 +24,7 @@ Use `BasePlayer` to build your own player class.
 
 ```python
 from othellopy.core import Cell
-from othellopy.player import BasePlayer
+from othellopy.players import BasePlayer
 
 
 class MyPlayer(BasePlayer):

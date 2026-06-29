@@ -1,7 +1,7 @@
 """Intermediate sample player."""
 
 from othellopy.core import Board, Cell, Move, opponent
-from othellopy.player import BasePlayer
+from othellopy.players.base import BasePlayer
 
 _MOBILITY_WEIGHT = 8
 _DISC_WEIGHT = 2

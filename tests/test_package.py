@@ -6,8 +6,12 @@ from othellopy import __version__
 from othellopy.board import board_to_str, copy_board, initial_board
 from othellopy.core import Board, Cell
 from othellopy.game import GameResult, InvalidMoveError, OthelloGame
-from othellopy.player import BasePlayer
-from othellopy.players import AdvancedPlayer, BeginnerPlayer, IntermediatePlayer
+from othellopy.players import (
+    AdvancedPlayer,
+    BasePlayer,
+    BeginnerPlayer,
+    IntermediatePlayer,
+)
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from othellopy.core import Board, Cell, Move, opponent
-from othellopy.player import BasePlayer
+from othellopy.players.base import BasePlayer
 
 _MAX_CONSECUTIVE_PASSES = 2
 _MIN_SEARCH_DEPTH = 1

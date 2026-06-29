@@ -1,4 +1,4 @@
-"""Player base class for Othello/Reversi exercises."""
+"""Base player class for Othello/Reversi exercises."""
 
 from abc import ABC, abstractmethod
 
