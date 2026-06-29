@@ -5,8 +5,14 @@ from io import StringIO
 
 import pytest
 
-from othellopy import __version__
-from othellopy.board import board_to_html, board_to_str, copy_board, initial_board
+from othellopy import __version__, validation
+from othellopy.board import (
+    board_to_html,
+    board_to_str,
+    copy_board,
+    display_board,
+    initial_board,
+)
 from othellopy.core import Board, Cell
 from othellopy.game import GameResult, OthelloGame
 from othellopy.players import (
@@ -90,6 +96,19 @@ class PrintingPlayer(BasePlayer):
         return self.get_moves(board)[0]
 
 
+class DisplayingPlayer(BasePlayer):
+    """Player that displays the board while choosing a move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Display the board before returning a move."""
+        display_board(board, use_emoji=False)
+        return self.get_moves(board)[0]
+
+
 class MutatingPlayer(BasePlayer):
     """Player that mutates the board while choosing a move."""
 
@@ -99,8 +118,9 @@ class MutatingPlayer(BasePlayer):
 
     def next_move(self, board: Board) -> tuple[int, int]:
         """Mutate the board before returning a move."""
+        moves = self.get_moves(board)
         board[0][0] = Cell.BLACK
-        return self.get_moves(board)[0]
+        return moves[0]
 
 
 class ExternalImportPlayer(BasePlayer):
@@ -132,7 +152,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.1"
+    assert __version__ == "0.2.2"
 
 
 def test_cell_values() -> None:
@@ -363,20 +383,35 @@ def test_validate_rejects_invalid_move_player() -> None:
     assert result.errors[0].code == "illegal-move"
 
 
-def test_validate_rejects_output() -> None:
-    """Reject players that print during next_move."""
-    result = validate_detail(PrintingPlayer)
-
-    assert not result.passed
-    assert any(issue.code == "banned-call" for issue in result.errors)
+def test_validate_allows_print_output() -> None:
+    """Allow players to print while debugging in notebooks."""
+    assert validate(PrintingPlayer)
 
 
-def test_validate_rejects_board_mutation() -> None:
-    """Reject players that mutate the board argument."""
-    result = validate_detail(MutatingPlayer)
+def test_validate_allows_display_board() -> None:
+    """Allow players to display boards while debugging in notebooks."""
+    assert validate(DisplayingPlayer)
 
-    assert not result.passed
-    assert any(issue.code == "board-mutation" for issue in result.errors)
+
+def test_validate_allows_board_mutation_on_copied_board() -> None:
+    """Allow board mutation because validation passes an isolated board copy."""
+    assert validate(MutatingPlayer)
+
+
+def test_validate_warns_when_source_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Continue runtime checks when source inspection fails in notebooks."""
+
+    def raise_os_error(_obj: object) -> str:
+        raise OSError
+
+    monkeypatch.setattr(validation.inspect, "getsource", raise_os_error)
+
+    result = validate_detail(FirstMovePlayer)
+
+    assert result.passed
+    assert any(issue.code == "source-unavailable" for issue in result.warnings)
 
 
 def test_validate_rejects_external_packages() -> None:

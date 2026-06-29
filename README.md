@@ -104,13 +104,35 @@ else:
 
 The validator checks that the class inherits from `BasePlayer`, can be
 constructed for black and white, returns legal moves on several board states,
-does not mutate the board, does not print during `next_move()`, and returns
-within one second by default.
+and returns within one second by default. `print()` and `display_board()` are
+allowed, so students can debug in Google Colab while running validation.
 
-It also performs static checks on the class source. External packages such as
-`numpy` are not allowed for this course. Safe standard library modules such as
-`random` and `math` are allowed, while file, process, network, import-system,
-and arbitrary-code execution APIs are rejected.
+The board passed to `next_move()` is an isolated copy during validation and game
+play, so accidental board edits do not change the real game state. Students
+should still treat the board as read-only because only the returned move is used.
+
+When Google Colab prevents source inspection, validation reports
+`source-unavailable` as a warning and continues with runtime checks.
+
+The validator also performs static checks when source code is available.
+External packages such as `numpy` and `pandas` are not allowed for this course.
+Most safe Python standard library modules are allowed, including:
+
+- `random`
+- `math`
+- `statistics`
+- `itertools`
+- `collections`
+- `functools`
+- `operator`
+- `heapq`
+- `bisect`
+- `copy`
+
+File, process, network, import-system, threading, and arbitrary-code execution
+APIs are rejected. Examples include `os`, `sys`, `pathlib`, `subprocess`,
+`socket`, `urllib`, `pickle`, `importlib`, `threading`, `open()`, `input()`,
+`eval()`, and `exec()`.
 
 This is a pre-submission screen, not a security sandbox. Evaluation servers
 should run the same validation again and execute submitted players in an
