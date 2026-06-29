@@ -1,5 +1,7 @@
 """Package behavior tests."""
 
+from io import StringIO
+
 import pytest
 
 from othellopy import __version__
@@ -11,6 +13,7 @@ from othellopy.players import (
     BasePlayer,
     BeginnerPlayer,
     IntermediatePlayer,
+    ManualPlayer,
 )
 
 BOARD_SIZE = 8
@@ -231,3 +234,33 @@ def test_advanced_player_returns_legal_move() -> None:
     board = initial_board()
 
     assert player.next_move(board) in INITIAL_BLACK_MOVES
+
+
+def test_manual_player_reads_row_then_column() -> None:
+    """Read manual moves as row then column."""
+    output = StringIO()
+    player = ManualPlayer(
+        Cell.BLACK,
+        input_func=lambda _prompt: "23",
+        output=output,
+        use_emoji=False,
+    )
+
+    assert player.next_move(initial_board()) == (2, 3)
+    assert "BLACK to move" in output.getvalue()
+    assert "Valid moves: 23, 32, 45, 54" in output.getvalue()
+
+
+def test_manual_player_retries_invalid_input() -> None:
+    """Keep asking until a manual move is valid."""
+    moves = iter(["99", "23"])
+    output = StringIO()
+    player = ManualPlayer(
+        Cell.BLACK,
+        input_func=lambda _prompt: next(moves),
+        output=output,
+        use_emoji=False,
+    )
+
+    assert player.next_move(initial_board()) == (2, 3)
+    assert "Invalid move: '99'" in output.getvalue()

@@ -42,12 +42,18 @@ Coordinates are zero-based `(row, col)` pairs, matching `board[row][col]`.
 Use sample players when you want a ready-made baseline:
 
 ```python
-from othellopy.players import AdvancedPlayer, BeginnerPlayer, IntermediatePlayer
+from othellopy.players import (
+    AdvancedPlayer,
+    BeginnerPlayer,
+    IntermediatePlayer,
+    ManualPlayer,
+)
 ```
 
 - `BeginnerPlayer`: chooses a legal move randomly.
 - `IntermediatePlayer`: scores legal moves with a simple heuristic.
 - `AdvancedPlayer`: searches ahead with alpha-beta pruning.
+- `ManualPlayer`: asks for row-column input in a CLI, such as `07`.
 
 ## Game example
 
