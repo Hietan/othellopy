@@ -1,5 +1,6 @@
 """Package behavior tests."""
 
+import random
 from io import StringIO
 
 import pytest
@@ -15,6 +16,7 @@ from othellopy.players import (
     IntermediatePlayer,
     ManualPlayer,
 )
+from othellopy.validation import validate, validate_detail
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4
@@ -73,6 +75,59 @@ class BrokenMovePlayer(BasePlayer):
     def next_move(self, _board: Board) -> object:
         """Return an object that is not a move."""
         return None
+
+
+class PrintingPlayer(BasePlayer):
+    """Player that prints while choosing a move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Print before returning a move."""
+        print("debug")  # noqa: T201
+        return self.get_moves(board)[0]
+
+
+class MutatingPlayer(BasePlayer):
+    """Player that mutates the board while choosing a move."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Mutate the board before returning a move."""
+        board[0][0] = Cell.BLACK
+        return self.get_moves(board)[0]
+
+
+class ExternalImportPlayer(BasePlayer):
+    """Player that imports an external package."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Use a disallowed external import."""
+        import numpy as np  # noqa: PLC0415
+
+        _ = np.array([1])
+        return self.get_moves(board)[0]
+
+
+class RandomPlayer(BasePlayer):
+    """Player that uses an allowed standard library module."""
+
+    def __init__(self, color: Cell) -> None:
+        """Initialize the player color."""
+        super().__init__(color)
+
+    def next_move(self, board: Board) -> tuple[int, int]:
+        """Use random from the standard library."""
+        return random.choice(self.get_moves(board))  # noqa: S311
 
 
 def test_version() -> None:
@@ -264,3 +319,45 @@ def test_manual_player_retries_invalid_input() -> None:
 
     assert player.next_move(initial_board()) == (2, 3)
     assert "Invalid move: '99'" in output.getvalue()
+
+
+def test_validate_accepts_valid_player() -> None:
+    """Accept a valid submitted player."""
+    assert validate(FirstMovePlayer)
+
+
+def test_validate_allows_standard_library_imports() -> None:
+    """Allow safe standard library imports such as random."""
+    assert validate(RandomPlayer)
+
+
+def test_validate_rejects_invalid_move_player() -> None:
+    """Reject players that return illegal moves."""
+    result = validate_detail(InvalidMovePlayer)
+
+    assert not result.passed
+    assert result.errors[0].code == "illegal-move"
+
+
+def test_validate_rejects_output() -> None:
+    """Reject players that print during next_move."""
+    result = validate_detail(PrintingPlayer)
+
+    assert not result.passed
+    assert any(issue.code == "banned-call" for issue in result.errors)
+
+
+def test_validate_rejects_board_mutation() -> None:
+    """Reject players that mutate the board argument."""
+    result = validate_detail(MutatingPlayer)
+
+    assert not result.passed
+    assert any(issue.code == "board-mutation" for issue in result.errors)
+
+
+def test_validate_rejects_external_packages() -> None:
+    """Reject external package imports such as numpy."""
+    result = validate_detail(ExternalImportPlayer)
+
+    assert not result.passed
+    assert any(issue.code == "external-module" for issue in result.errors)

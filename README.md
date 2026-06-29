@@ -86,6 +86,36 @@ class MyPlayer(BasePlayer):
 Coordinates are zero-based `(row, col)` pairs. `next_move()` is called only
 when the player has at least one legal move.
 
+## Pre-Submission Player Check
+
+Use `validate()` before submitting a custom player from Google Colab or another
+notebook environment.
+
+```python
+from othellopy.validation import validate, validate_detail
+
+if validate(MyPlayer):
+    print("OK to submit")
+else:
+    result = validate_detail(MyPlayer)
+    for issue in result.errors:
+        print(issue.code, issue.message)
+```
+
+The validator checks that the class inherits from `BasePlayer`, can be
+constructed for black and white, returns legal moves on several board states,
+does not mutate the board, does not print during `next_move()`, and returns
+within one second by default.
+
+It also performs static checks on the class source. External packages such as
+`numpy` are not allowed for this course. Safe standard library modules such as
+`random` and `math` are allowed, while file, process, network, import-system,
+and arbitrary-code execution APIs are rejected.
+
+This is a pre-submission screen, not a security sandbox. Evaluation servers
+should run the same validation again and execute submitted players in an
+isolated sandbox.
+
 ## Manual CLI Play
 
 Use `ManualPlayer` to enter moves interactively from a terminal. Input is
@@ -258,6 +288,34 @@ Fields:
 - `valid_moves: list[tuple[int, int]]`
 - `board: Board`
 - `message: str`
+
+### `othellopy.validation`
+
+`validate(player_class, *, max_seconds=1.0) -> bool`
+: Returns `True` when a submitted player class passes pre-submission checks.
+
+`validate_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
+: Returns detailed errors, warnings, and runtime case details.
+
+`ValidationResult`
+: Detailed validation result.
+
+Fields:
+
+- `passed: bool`
+- `issues: list[ValidationIssue]`
+- `errors: list[ValidationIssue]`
+- `warnings: list[ValidationIssue]`
+- `details: dict[str, object]`
+
+`ValidationIssue`
+: One validation issue.
+
+Fields:
+
+- `code: str`
+- `message: str`
+- `severity: ValidationSeverity`
 
 ## Development
 

@@ -11,6 +11,8 @@ version is `0`, public APIs may change between minor releases.
 - Move public player classes under `othellopy.players`.
 - Add `BeginnerPlayer`, `IntermediatePlayer`, `AdvancedPlayer`, and
   `ManualPlayer`.
+- Add `othellopy.validation.validate()` and `validate_detail()` for
+  pre-submission player checks.
 - Treat invalid player moves as forfeits and expose `GameResult.forfeit`.
 - Render boards with emoji stones when supported, with ASCII fallback.
 - Add strict ruff and mypy checks, CI, Apache-2.0 metadata, and OSS project
