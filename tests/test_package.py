@@ -341,6 +341,38 @@ def test_game_returns_result() -> None:
     assert result.turns[0].move == (2, 3)
 
 
+def test_game_accepts_player_keyword_names() -> None:
+    """Use black_player and white_player as the notebook-friendly keywords."""
+    result = OthelloGame(
+        black_player=FirstMovePlayer,
+        white_player=LastMovePlayer,
+    ).play()
+
+    assert isinstance(result, GameResult)
+    assert result.moves[0] == (Cell.BLACK, 2, 3)
+
+
+def test_game_keeps_player_class_keyword_compatibility() -> None:
+    """Keep the old keyword names working for existing notebooks."""
+    result = OthelloGame(
+        black_player_class=FirstMovePlayer,
+        white_player_class=LastMovePlayer,
+    ).play()
+
+    assert isinstance(result, GameResult)
+    assert result.moves[0] == (Cell.BLACK, 2, 3)
+
+
+def test_game_rejects_duplicate_player_keywords() -> None:
+    """Reject ambiguous player class arguments."""
+    with pytest.raises(TypeError, match="black_player"):
+        OthelloGame(
+            FirstMovePlayer,
+            LastMovePlayer,
+            black_player_class=FirstMovePlayer,
+        )
+
+
 def test_game_ends_with_no_valid_moves() -> None:
     """Stop the game once neither player has valid moves."""
     result = OthelloGame(FirstMovePlayer, FirstMovePlayer).play()

@@ -10,6 +10,7 @@ _MAX_CONSECUTIVE_PASSES = 2
 _MOVE_LENGTH = 2
 
 MoveRecord = tuple[Cell, int, int]
+PlayerClass = type[BasePlayer]
 
 
 @dataclass(frozen=True)
@@ -53,12 +54,25 @@ class OthelloGame:
 
     def __init__(
         self,
-        black_player_class: type[BasePlayer],
-        white_player_class: type[BasePlayer],
+        black_player: PlayerClass | None = None,
+        white_player: PlayerClass | None = None,
+        *,
+        black_player_class: PlayerClass | None = None,
+        white_player_class: PlayerClass | None = None,
     ) -> None:
         """Initialize black and white players from their classes."""
-        self.black_player = black_player_class(Cell.BLACK)
-        self.white_player = white_player_class(Cell.WHITE)
+        black_player = _resolve_player_class(
+            player=black_player,
+            player_class=black_player_class,
+            color_name="black",
+        )
+        white_player = _resolve_player_class(
+            player=white_player,
+            player_class=white_player_class,
+            color_name="white",
+        )
+        self.black_player = black_player(Cell.BLACK)
+        self.white_player = white_player(Cell.WHITE)
 
     def play(self) -> GameResult:
         """Play until both players have no valid moves."""
@@ -117,6 +131,22 @@ class OthelloGame:
         if color == Cell.BLACK:
             return self.black_player
         return self.white_player
+
+
+def _resolve_player_class(
+    *,
+    player: PlayerClass | None,
+    player_class: PlayerClass | None,
+    color_name: str,
+) -> PlayerClass:
+    if player is not None and player_class is not None:
+        msg = f"Use either {color_name}_player or {color_name}_player_class, not both."
+        raise TypeError(msg)
+    resolved_player = player if player is not None else player_class
+    if resolved_player is None:
+        msg = f"{color_name}_player is required."
+        raise TypeError(msg)
+    return resolved_player
 
 
 def _place_cell(board: Board, player: BasePlayer, row: int, col: int) -> None:

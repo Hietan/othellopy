@@ -194,7 +194,10 @@ If a player returns an invalid move, the player forfeits and the opponent wins.
 The game still returns a `GameResult`.
 
 ```python
-result = OthelloGame(MyPlayer, BeginnerPlayer).play()
+result = OthelloGame(
+    black_player=MyPlayer,
+    white_player=BeginnerPlayer,
+).play()
 
 if result.forfeit is not None:
     print(result.winner)
@@ -274,8 +277,9 @@ Cell.WHITE
 
 ### `othellopy.game`
 
-`OthelloGame(black_player_class, white_player_class)`
-: Runs one game between two `BasePlayer` subclasses.
+`OthelloGame(black_player, white_player)`
+: Runs one game between two `BasePlayer` subclasses. Keyword arguments
+  `black_player=...` and `white_player=...` are recommended for notebooks.
 
 `GameResult`
 : Return value from `OthelloGame(...).play()`.
