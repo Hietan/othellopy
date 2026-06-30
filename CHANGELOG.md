@@ -11,6 +11,8 @@ version is `0`, public APIs may change between minor releases.
   forfeit and the opponent wins.
 - Tune the default `AdvancedPlayer` search depth so normal games finish within
   the per-move timeout.
+- Align CI and release documentation to run format checks and type-check all
+  files.
 
 ## 0.2.3 - 2026-06-29
 

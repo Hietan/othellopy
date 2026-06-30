@@ -361,8 +361,9 @@ uv pip install -e ".[dev]"
 Run checks:
 
 ```bash
+uv run --extra dev ruff format --check .
 uv run --extra dev ruff check .
-uv run --extra dev mypy src/othellopy
+uv run --extra dev mypy .
 uv run --extra dev pytest
 uv build
 ```
