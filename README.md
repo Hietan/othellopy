@@ -96,6 +96,11 @@ The board passed to `next_move()` is an isolated copy during player tests and ga
 play, so accidental board edits do not change the real game state. Students
 should still treat the board as read-only because only the returned move is used.
 
+Normal games also limit each `next_move()` call to one second by default. A
+player that exceeds the limit forfeits, and the opponent wins. Pass
+`move_timeout_seconds=None` when you intentionally need no timeout, such as
+manual terminal play.
+
 Runtime player tests do not inspect source code and do not enforce import
 policy. Use a separate static analyzer, for example in a Next.js client, to
 reject external packages such as `numpy` or risky APIs such as `open()`,
@@ -114,7 +119,11 @@ two digits in row-column order, such as `07`.
 from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, ManualPlayer
 
-result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
+result = OthelloGame(
+    ManualPlayer,
+    BeginnerPlayer,
+    move_timeout_seconds=None,
+).play()
 ```
 
 Equivalent one-off command:
@@ -124,7 +133,11 @@ uv run python - <<'PY'
 from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, ManualPlayer
 
-result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
+result = OthelloGame(
+    ManualPlayer,
+    BeginnerPlayer,
+    move_timeout_seconds=None,
+).play()
 print(result.winner_name, result.black_score, result.white_score)
 PY
 ```
@@ -178,6 +191,7 @@ Use `board_to_str(..., use_emoji=False)` when you need stable ASCII output.
 ## Invalid Moves and Forfeits
 
 If a player returns an invalid move, the player forfeits and the opponent wins.
+The same happens when `next_move()` exceeds the one-second default timeout.
 The game still returns a `GameResult`.
 
 ```python
@@ -264,9 +278,10 @@ Cell.WHITE
 
 ### `othellopy.game`
 
-`OthelloGame(black_player, white_player)`
+`OthelloGame(black_player, white_player, *, move_timeout_seconds=1.0)`
 : Runs one game between two `BasePlayer` subclasses. Keyword arguments
   `black_player=...` and `white_player=...` are recommended for notebooks.
+  `move_timeout_seconds=None` disables the per-move timeout.
 
 `GameResult`
 : Return value from `OthelloGame(...).play()`.
@@ -295,7 +310,7 @@ Fields:
 - `white_score: int`
 
 `ForfeitRecord`
-: Invalid-move forfeit information.
+: Invalid-move or timeout forfeit information.
 
 Fields:
 
