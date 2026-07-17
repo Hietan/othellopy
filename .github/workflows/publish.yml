@@ -30,11 +30,14 @@ jobs:
       - name: Run tests
         run: uv run --extra dev pytest
 
+      - name: Run format check
+        run: uv run --extra dev ruff format --check .
+
       - name: Run lint
         run: uv run --extra dev ruff check .
 
       - name: Run type check
-        run: uv run --extra dev mypy src/othellopy
+        run: uv run --extra dev mypy .
 
       - name: Build package
         run: uv build

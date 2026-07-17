@@ -33,8 +33,9 @@ Use PEP 440-compatible versions and SemVer-style meaning where practical:
 7. Run:
 
    ```bash
+   uv run --extra dev ruff format --check .
    uv run --extra dev ruff check .
-   uv run --extra dev mypy src/othellopy
+   uv run --extra dev mypy .
    uv run --extra dev pytest
    uv build
    ```

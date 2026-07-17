@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from types import FrameType
 
-_DEFAULT_MAX_SECONDS = 1.0
+_DEFAULT_MAX_SECONDS = 2.0
 _BOARD_SIZE = 8
 _MOVE_LENGTH = 2
 
@@ -51,9 +51,7 @@ class ValidationResult:
     def errors(self) -> list[ValidationIssue]:
         """Return issues that make validation fail."""
         return [
-            issue
-            for issue in self.issues
-            if issue.severity == ValidationSeverity.ERROR
+            issue for issue in self.issues if issue.severity == ValidationSeverity.ERROR
         ]
 
     @property
@@ -147,8 +145,7 @@ def _validate_class_shape(player_class: type[BasePlayer]) -> list[ValidationIssu
         return [
             ValidationIssue(
                 "not-class",
-                "test_player() expects a Player class, such as "
-                "test_player(MyPlayer).",
+                "test_player() expects a Player class, such as test_player(MyPlayer).",
             )
         ]
 

@@ -7,7 +7,7 @@ from othellopy.players.base import BasePlayer
 
 _MAX_CONSECUTIVE_PASSES = 2
 _MIN_SEARCH_DEPTH = 1
-_SEARCH_DEPTH = 4
+_SEARCH_DEPTH = 3
 _WIN_SCORE = 100_000
 _CORNER_BONUS = 1_000
 _MOBILITY_WEIGHT = 8
@@ -209,9 +209,7 @@ def _flips_for(board: Board, color: Cell, move: Move) -> list[Move]:
 
     flips = []
     for row_step, col_step in _DIRECTIONS:
-        flips.extend(
-            _flips_in_direction(board, color, move, (row_step, col_step))
-        )
+        flips.extend(_flips_in_direction(board, color, move, (row_step, col_step)))
     return flips
 
 
