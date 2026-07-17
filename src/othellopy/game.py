@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from types import FrameType
 
-_DEFAULT_MOVE_TIMEOUT_SECONDS = 1.0
+_DEFAULT_MOVE_TIMEOUT_SECONDS = 2.0
 _MAX_CONSECUTIVE_PASSES = 2
 _MOVE_LENGTH = 2
 

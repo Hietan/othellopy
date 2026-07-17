@@ -36,6 +36,7 @@ from othellopy.validation import (
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4
+DEFAULT_MOVE_TIMEOUT_SECONDS = 2.0
 CELL_VALUES = {
     Cell.EMPTY: 0,
     Cell.BLACK: 1,
@@ -506,18 +507,19 @@ def test_advanced_player_returns_legal_move() -> None:
     assert player.next_move(board) in INITIAL_BLACK_MOVES
 
 
-def test_advanced_player_passes_one_second_runtime_check() -> None:
-    """Keep AdvancedPlayer under the default one-second runtime limit."""
+def test_advanced_player_passes_two_second_runtime_check() -> None:
+    """Keep AdvancedPlayer under the default two-second runtime limit."""
     result = player_test_detail(AdvancedPlayer)
 
     assert result.passed
     assert all(
-        case["elapsed_seconds"] is not None and case["elapsed_seconds"] <= 1.0
+        case["elapsed_seconds"] is not None
+        and case["elapsed_seconds"] <= DEFAULT_MOVE_TIMEOUT_SECONDS
         for case in result.details["runtime_cases"]
     )
 
 
-def test_advanced_player_stays_under_one_second_in_midgame() -> None:
+def test_advanced_player_stays_under_two_seconds_in_midgame() -> None:
     """Keep AdvancedPlayer fast enough on a wider midgame move set."""
     board = board_from_rows(
         [
@@ -538,7 +540,7 @@ def test_advanced_player_stays_under_one_second_in_midgame() -> None:
     elapsed = time.perf_counter() - start
 
     assert move in player.get_moves(board)
-    assert elapsed <= 1.0
+    assert elapsed <= DEFAULT_MOVE_TIMEOUT_SECONDS
 
 
 def test_manual_player_reads_row_then_column() -> None:

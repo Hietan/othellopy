@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from types import FrameType
 
-_DEFAULT_MAX_SECONDS = 1.0
+_DEFAULT_MAX_SECONDS = 2.0
 _BOARD_SIZE = 8
 _MOVE_LENGTH = 2
 

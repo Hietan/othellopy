@@ -7,7 +7,7 @@ version is `0`, public APIs may change between minor releases.
 
 ## Unreleased
 
-- Add a default one-second per-move timeout to `OthelloGame`; timed-out players
+- Add a default two-second per-move timeout to `OthelloGame`; timed-out players
   forfeit and the opponent wins.
 - Tune the default `AdvancedPlayer` search depth so normal games finish within
   the per-move timeout.
