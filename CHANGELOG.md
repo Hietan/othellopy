@@ -13,6 +13,8 @@ version is `0`, public APIs may change between minor releases.
   the per-move timeout.
 - Align CI and release documentation to run format checks and type-check all
   files.
+- Document the Windows limitation for forcibly interrupting long-running
+  `next_move()` calls during player checks.
 
 ## 0.2.3 - 2026-06-29
 

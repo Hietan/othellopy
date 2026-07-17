@@ -101,6 +101,13 @@ player that exceeds the limit forfeits, and the opponent wins. Pass
 `move_timeout_seconds=None` when you intentionally need no timeout, such as
 manual terminal play.
 
+On Linux environments such as Google Colab, the timeout can interrupt
+`next_move()` when it exceeds the limit. On Windows, a running `next_move()`
+cannot always be stopped forcibly; if it eventually returns, elapsed time is
+checked afterward, but an infinite loop may hang the check. Evaluation servers
+should run submitted players in an isolated process or sandbox with their own
+timeout.
+
 Runtime player tests do not inspect source code and do not enforce import
 policy. Use a separate static analyzer, for example in a Next.js client, to
 reject external packages such as `numpy` or risky APIs such as `open()`,
