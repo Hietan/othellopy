@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The project follows semantic versioning where practical. While the major
 version is `0`, public APIs may change between minor releases.
 
+## 0.2.4 - 2026-07-17
+
+- Add a default two-second per-move timeout to `OthelloGame`; timed-out players
+  forfeit and the opponent wins.
+- Tune the default `AdvancedPlayer` search depth so normal games finish within
+  the per-move timeout.
+- Align CI and release documentation to run format checks and type-check all
+  files.
+- Document the Windows limitation for forcibly interrupting long-running
+  `next_move()` calls during player checks.
+
 ## 0.2.3 - 2026-06-29
 
 - Rename the recommended runtime check API to `test_player()` and

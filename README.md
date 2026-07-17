@@ -89,12 +89,24 @@ else:
 
 The runtime player tests check that the class inherits from `BasePlayer`, can be
 constructed for black and white, returns legal moves on many board states, and
-returns within one second by default. `print()` and `display_board()` are
+returns within two seconds by default. `print()` and `display_board()` are
 allowed, so students can debug in Google Colab while running the tests.
 
 The board passed to `next_move()` is an isolated copy during player tests and game
 play, so accidental board edits do not change the real game state. Students
 should still treat the board as read-only because only the returned move is used.
+
+Normal games also limit each `next_move()` call to two seconds by default. A
+player that exceeds the limit forfeits, and the opponent wins. Pass
+`move_timeout_seconds=None` when you intentionally need no timeout, such as
+manual terminal play.
+
+On Linux environments such as Google Colab, the timeout can interrupt
+`next_move()` when it exceeds the limit. On Windows, a running `next_move()`
+cannot always be stopped forcibly; if it eventually returns, elapsed time is
+checked afterward, but an infinite loop may hang the check. Evaluation servers
+should run submitted players in an isolated process or sandbox with their own
+timeout.
 
 Runtime player tests do not inspect source code and do not enforce import
 policy. Use a separate static analyzer, for example in a Next.js client, to
@@ -114,7 +126,11 @@ two digits in row-column order, such as `07`.
 from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, ManualPlayer
 
-result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
+result = OthelloGame(
+    ManualPlayer,
+    BeginnerPlayer,
+    move_timeout_seconds=None,
+).play()
 ```
 
 Equivalent one-off command:
@@ -124,7 +140,11 @@ uv run python - <<'PY'
 from othellopy.game import OthelloGame
 from othellopy.players import BeginnerPlayer, ManualPlayer
 
-result = OthelloGame(ManualPlayer, BeginnerPlayer).play()
+result = OthelloGame(
+    ManualPlayer,
+    BeginnerPlayer,
+    move_timeout_seconds=None,
+).play()
 print(result.winner_name, result.black_score, result.white_score)
 PY
 ```
@@ -178,6 +198,7 @@ Use `board_to_str(..., use_emoji=False)` when you need stable ASCII output.
 ## Invalid Moves and Forfeits
 
 If a player returns an invalid move, the player forfeits and the opponent wins.
+The same happens when `next_move()` exceeds the two-second default timeout.
 The game still returns a `GameResult`.
 
 ```python
@@ -264,9 +285,10 @@ Cell.WHITE
 
 ### `othellopy.game`
 
-`OthelloGame(black_player, white_player)`
+`OthelloGame(black_player, white_player, *, move_timeout_seconds=2.0)`
 : Runs one game between two `BasePlayer` subclasses. Keyword arguments
   `black_player=...` and `white_player=...` are recommended for notebooks.
+  `move_timeout_seconds=None` disables the per-move timeout.
 
 `GameResult`
 : Return value from `OthelloGame(...).play()`.
@@ -295,7 +317,7 @@ Fields:
 - `white_score: int`
 
 `ForfeitRecord`
-: Invalid-move forfeit information.
+: Invalid-move or timeout forfeit information.
 
 Fields:
 
@@ -307,10 +329,10 @@ Fields:
 
 ### `othellopy.validation`
 
-`test_player(player_class, *, max_seconds=1.0) -> bool`
+`test_player(player_class, *, max_seconds=2.0) -> bool`
 : Returns `True` when a submitted player class passes runtime player tests.
 
-`test_player_detail(player_class, *, max_seconds=1.0) -> ValidationResult`
+`test_player_detail(player_class, *, max_seconds=2.0) -> ValidationResult`
 : Returns detailed runtime errors and runtime case details.
 
 `validate(...)` / `validate_detail(...)`
@@ -346,8 +368,9 @@ uv pip install -e ".[dev]"
 Run checks:
 
 ```bash
+uv run --extra dev ruff format --check .
 uv run --extra dev ruff check .
-uv run --extra dev mypy src/othellopy
+uv run --extra dev mypy .
 uv run --extra dev pytest
 uv build
 ```

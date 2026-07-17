@@ -78,9 +78,7 @@ def _flips_for(board: Board, color: Cell, move: Move) -> list[Move]:
 
     flips = []
     for row_step, col_step in _DIRECTIONS:
-        flips.extend(
-            _flips_in_direction(board, color, move, (row_step, col_step))
-        )
+        flips.extend(_flips_in_direction(board, color, move, (row_step, col_step)))
     return flips
 
 

@@ -84,8 +84,7 @@ def board_to_html(board: Board, *, use_emoji: bool | None = None) -> str:
     marks = _EMOJI_MARKS if _should_use_emoji(use_emoji=use_emoji) else _LETTER_MARKS
     column_count = max((len(row) for row in board), default=0)
     lines = [
-        '<table role="grid" aria-label="Othello board" '
-        f'style="{_HTML_TABLE_STYLE}">'
+        f'<table role="grid" aria-label="Othello board" style="{_HTML_TABLE_STYLE}">'
     ]
     header_cells = [_html_cell("th", "", _HTML_HEADER_STYLE)]
     header_cells.extend(

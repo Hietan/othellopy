@@ -1,11 +1,22 @@
 """Game runner for Othello/Reversi players."""
 
+from __future__ import annotations
+
+import contextlib
+import signal
+import time
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, TypeGuard
 
 from othellopy.board import board_to_str, copy_board, initial_board
-from othellopy.core import Board, Cell
+from othellopy.core import Board, Cell, Move
 from othellopy.players.base import BasePlayer
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from types import FrameType
+
+_DEFAULT_MOVE_TIMEOUT_SECONDS = 2.0
 _MAX_CONSECUTIVE_PASSES = 2
 _MOVE_LENGTH = 2
 
@@ -35,7 +46,7 @@ class GameResult:
     board: Board
     moves: list[MoveRecord]
     turns: list[TurnRecord]
-    forfeit: "ForfeitRecord | None" = None
+    forfeit: ForfeitRecord | None = None
 
     @property
     def winner_name(self) -> str:
@@ -49,7 +60,7 @@ class GameResult:
 
 @dataclass(frozen=True)
 class ForfeitRecord:
-    """Information about a forfeit caused by an invalid move."""
+    """Information about a forfeit caused by a player rule violation."""
 
     color: Cell
     move: object
@@ -68,6 +79,7 @@ class OthelloGame:
         *,
         black_player_class: PlayerClass | None = None,
         white_player_class: PlayerClass | None = None,
+        move_timeout_seconds: float | None = _DEFAULT_MOVE_TIMEOUT_SECONDS,
     ) -> None:
         """Initialize black and white players from their classes."""
         black_player = _resolve_player_class(
@@ -82,6 +94,7 @@ class OthelloGame:
         )
         self.black_player = black_player(Cell.BLACK)
         self.white_player = white_player(Cell.WHITE)
+        self.move_timeout_seconds = _validate_move_timeout(move_timeout_seconds)
 
     def play(self) -> GameResult:
         """Play until both players have no valid moves."""
@@ -102,7 +115,27 @@ class OthelloGame:
                 continue
 
             pass_count = 0
-            move = player.next_move(copy_board(board))
+            timeout_seconds = self.move_timeout_seconds
+            try:
+                move = _next_move(
+                    player,
+                    copy_board(board),
+                    timeout_seconds=timeout_seconds,
+                )
+            except _MoveTimeoutError:
+                if timeout_seconds is None:
+                    raise
+                return _forfeit_result(
+                    board,
+                    moves,
+                    turns,
+                    _timeout_forfeit_record(
+                        board,
+                        current_color,
+                        valid_moves,
+                        timeout_seconds=timeout_seconds,
+                    ),
+                )
             if not _is_move(move):
                 return _forfeit_result(
                     board,
@@ -142,6 +175,10 @@ class OthelloGame:
         return self.white_player
 
 
+class _MoveTimeoutError(TimeoutError):
+    """Raised when next_move takes too long."""
+
+
 def _resolve_player_class(
     *,
     player: PlayerClass | None,
@@ -156,6 +193,56 @@ def _resolve_player_class(
         msg = f"{color_name}_player is required."
         raise TypeError(msg)
     return resolved_player
+
+
+def _validate_move_timeout(timeout_seconds: float | None) -> float | None:
+    if timeout_seconds is None:
+        return None
+    if timeout_seconds <= 0:
+        msg = "move_timeout_seconds must be positive or None."
+        raise ValueError(msg)
+    return timeout_seconds
+
+
+def _next_move(
+    player: BasePlayer,
+    board: Board,
+    *,
+    timeout_seconds: float | None,
+) -> object:
+    if timeout_seconds is None:
+        return player.next_move(board)
+
+    start = time.perf_counter()
+    with _time_limit(timeout_seconds):
+        move = player.next_move(board)
+
+    if time.perf_counter() - start > timeout_seconds:
+        msg = "next_move timed out"
+        raise _MoveTimeoutError(msg)
+
+    return move
+
+
+@contextlib.contextmanager
+def _time_limit(seconds: float) -> Iterator[None]:
+    if not hasattr(signal, "setitimer"):
+        yield
+        return
+
+    def handler(_signum: int, _frame: FrameType | None) -> None:
+        msg = "next_move timed out"
+        raise _MoveTimeoutError(msg)
+
+    previous_handler = signal.signal(signal.SIGALRM, handler)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0.0)
+        signal.signal(signal.SIGALRM, previous_handler)
+        if previous_timer[0] > 0:
+            signal.setitimer(signal.ITIMER_REAL, *previous_timer)
 
 
 def _place_cell(board: Board, player: BasePlayer, row: int, col: int) -> None:
@@ -203,6 +290,28 @@ def _forfeit_record(
     )
 
 
+def _timeout_forfeit_record(
+    board: Board,
+    color: Cell,
+    valid_moves: list[tuple[int, int]],
+    *,
+    timeout_seconds: float,
+) -> ForfeitRecord:
+    message = (
+        f"{color.name} player forfeited because next_move() exceeded "
+        f"{timeout_seconds:.3g} seconds.\n"
+        f"Valid moves: {valid_moves}\n"
+        f"{board_to_str(board)}"
+    )
+    return ForfeitRecord(
+        color=color,
+        move=None,
+        valid_moves=valid_moves.copy(),
+        board=copy_board(board),
+        message=message,
+    )
+
+
 def _forfeit_result(
     board: Board,
     moves: list[MoveRecord],
@@ -222,7 +331,7 @@ def _forfeit_result(
     )
 
 
-def _is_move(move: object) -> bool:
+def _is_move(move: object) -> TypeGuard[Move]:
     if not isinstance(move, tuple | list):
         return False
     if len(move) != _MOVE_LENGTH:

@@ -36,6 +36,7 @@ from othellopy.validation import (
 
 BOARD_SIZE = 8
 INITIAL_OCCUPIED_CELL_COUNT = 4
+DEFAULT_MOVE_TIMEOUT_SECONDS = 2.0
 CELL_VALUES = {
     Cell.EMPTY: 0,
     Cell.BLACK: 1,
@@ -43,6 +44,16 @@ CELL_VALUES = {
 }
 INITIAL_BLACK_MOVES = [(2, 3), (3, 2), (4, 5), (5, 4)]
 INITIAL_WHITE_MOVES = [(2, 4), (3, 5), (4, 2), (5, 3)]
+
+
+def board_from_rows(rows: list[str]) -> Board:
+    """Create a board from strings using '.', 'B', and 'W'."""
+    cells = {
+        ".": Cell.EMPTY,
+        "B": Cell.BLACK,
+        "W": Cell.WHITE,
+    }
+    return [[cells[mark] for mark in row] for row in rows]
 
 
 class FirstMovePlayer(BasePlayer):
@@ -96,7 +107,7 @@ class BrokenMovePlayer(BasePlayer):
         """Initialize the player color."""
         super().__init__(color)
 
-    def next_move(self, _board: Board) -> object:
+    def next_move(self, _board: Board) -> object:  # type: ignore[override]
         """Return an object that is not a move."""
         return None
 
@@ -150,7 +161,7 @@ class ExternalImportPlayer(BasePlayer):
 
     def next_move(self, board: Board) -> tuple[int, int]:
         """Use a disallowed external import."""
-        import numpy as np  # noqa: PLC0415
+        import numpy as np  # type: ignore[import-not-found] # noqa: PLC0415
 
         _ = np.array([1])
         return self.get_moves(board)[0]
@@ -212,7 +223,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.3"
+    assert __version__ == "0.2.4"
 
 
 def test_cell_values() -> None:
@@ -227,7 +238,7 @@ def test_cell_values() -> None:
 def test_base_player_cannot_be_created_directly() -> None:
     """Keep BasePlayer abstract."""
     with pytest.raises(TypeError):
-        BasePlayer(Cell.BLACK)
+        BasePlayer(Cell.BLACK)  # type: ignore[abstract]
 
 
 def test_player_sets_colors() -> None:
@@ -446,6 +457,28 @@ def test_game_forfeits_broken_move_shape() -> None:
     assert "Valid moves:" in result.forfeit.message
 
 
+def test_game_forfeits_timeout() -> None:
+    """Declare the opponent as winner when a player exceeds the move timeout."""
+    result = OthelloGame(
+        SlowPlayer,
+        FirstMovePlayer,
+        move_timeout_seconds=0.001,
+    ).play()
+
+    assert result.winner == Cell.WHITE
+    assert result.forfeit is not None
+    assert result.forfeit.color == Cell.BLACK
+    assert result.forfeit.move is None
+    assert result.forfeit.valid_moves == INITIAL_BLACK_MOVES
+    assert "exceeded 0.001 seconds" in result.forfeit.message
+
+
+def test_game_rejects_non_positive_timeout() -> None:
+    """Require positive timeouts while allowing None to disable the limit."""
+    with pytest.raises(ValueError, match="move_timeout_seconds"):
+        OthelloGame(FirstMovePlayer, FirstMovePlayer, move_timeout_seconds=0)
+
+
 def test_beginner_player_returns_legal_move() -> None:
     """Choose one legal move randomly."""
     player = BeginnerPlayer(Cell.BLACK, seed=0)
@@ -472,6 +505,42 @@ def test_advanced_player_returns_legal_move() -> None:
     board = initial_board()
 
     assert player.next_move(board) in INITIAL_BLACK_MOVES
+
+
+def test_advanced_player_passes_two_second_runtime_check() -> None:
+    """Keep AdvancedPlayer under the default two-second runtime limit."""
+    result = player_test_detail(AdvancedPlayer)
+
+    assert result.passed
+    assert all(
+        case["elapsed_seconds"] is not None
+        and case["elapsed_seconds"] <= DEFAULT_MOVE_TIMEOUT_SECONDS
+        for case in result.details["runtime_cases"]
+    )
+
+
+def test_advanced_player_stays_under_two_seconds_in_midgame() -> None:
+    """Keep AdvancedPlayer fast enough on a wider midgame move set."""
+    board = board_from_rows(
+        [
+            "........",
+            "..W.....",
+            ".BBW....",
+            "..BBWW..",
+            "...BBWW.",
+            ".....W.W",
+            ".....W..",
+            ".....W..",
+        ]
+    )
+    player = AdvancedPlayer(Cell.BLACK)
+
+    start = time.perf_counter()
+    move = player.next_move(board)
+    elapsed = time.perf_counter() - start
+
+    assert move in player.get_moves(board)
+    assert elapsed <= DEFAULT_MOVE_TIMEOUT_SECONDS
 
 
 def test_manual_player_reads_row_then_column() -> None:
