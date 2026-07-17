@@ -223,7 +223,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.3"
+    assert __version__ == "0.2.4"
 
 
 def test_cell_values() -> None:

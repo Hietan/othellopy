@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The project follows semantic versioning where practical. While the major
 version is `0`, public APIs may change between minor releases.
 
-## Unreleased
+## 0.2.4 - 2026-07-17
 
 - Add a default two-second per-move timeout to `OthelloGame`; timed-out players
   forfeit and the opponent wins.
