@@ -4,7 +4,7 @@ import sys
 from collections.abc import Callable
 from typing import TextIO
 
-from othellopy.board import board_to_str
+from othellopy.board import display_board
 from othellopy.core import Board, Cell, Move
 from othellopy.players.base import BasePlayer
 
@@ -44,7 +44,7 @@ class ManualPlayer(BasePlayer):
 
     def _write_turn(self, board: Board, valid_moves: list[Move]) -> None:
         self._write(f"{self.color.name} to move\n")
-        self._write(f"{board_to_str(board, use_emoji=self._use_emoji)}\n")
+        display_board(board, use_emoji=self._use_emoji, output=self._output)
         self._write(f"Valid moves: {_format_moves(valid_moves)}\n")
 
     def _write(self, message: str) -> None:

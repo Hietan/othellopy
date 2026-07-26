@@ -6,6 +6,7 @@ from io import StringIO
 
 import pytest
 
+import othellopy.players.manual as manual_module
 from othellopy import __version__
 from othellopy.board import (
     board_to_html,
@@ -223,7 +224,7 @@ class RandomPlayer(BasePlayer):
 
 def test_version() -> None:
     """Expose the package version."""
-    assert __version__ == "0.2.4"
+    assert __version__ == "0.2.5"
 
 
 def test_cell_values() -> None:
@@ -336,6 +337,15 @@ def test_board_to_html_can_disable_emoji() -> None:
     assert "B" in html
     assert "⚪️" not in html
     assert "⚫️" not in html
+
+
+def test_display_board_can_write_to_custom_output() -> None:
+    """Write display_board text output to a custom stream."""
+    output = StringIO()
+
+    display_board(initial_board(), use_emoji=False, output=output)
+
+    assert "3 . . . W B . . ." in output.getvalue()
 
 
 def test_game_returns_result() -> None:
@@ -556,6 +566,36 @@ def test_manual_player_reads_row_then_column() -> None:
     assert player.next_move(initial_board()) == (2, 3)
     assert "BLACK to move" in output.getvalue()
     assert "Valid moves: 23, 32, 45, 54" in output.getvalue()
+
+
+def test_manual_player_uses_display_board(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Render the manual board through the public display helper."""
+    output = StringIO()
+    calls = []
+
+    def fake_display_board(
+        board: Board,
+        *,
+        use_emoji: bool | None = None,
+        output: StringIO | None = None,
+    ) -> None:
+        calls.append((board, use_emoji, output))
+        if output is not None:
+            output.write("DISPLAYED BOARD\n")
+
+    monkeypatch.setattr(manual_module, "display_board", fake_display_board)
+    player = ManualPlayer(
+        Cell.BLACK,
+        input_func=lambda _prompt: "23",
+        output=output,
+        use_emoji=False,
+    )
+
+    assert player.next_move(initial_board()) == (2, 3)
+    assert len(calls) == 1
+    assert calls[0][1] is False
+    assert calls[0][2] is output
+    assert "DISPLAYED BOARD" in output.getvalue()
 
 
 def test_manual_player_retries_invalid_input() -> None:

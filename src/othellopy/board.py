@@ -3,7 +3,7 @@
 import html
 import sys
 from importlib import import_module
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, TextIO, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -105,8 +105,17 @@ def board_to_html(board: Board, *, use_emoji: bool | None = None) -> str:
     return "".join(lines)
 
 
-def display_board(board: Board, *, use_emoji: bool | None = None) -> None:
+def display_board(
+    board: Board,
+    *,
+    use_emoji: bool | None = None,
+    output: TextIO | None = None,
+) -> None:
     """Display a board in notebooks, falling back to text output in terminals."""
+    if output is not None:
+        _write_board_text(board, use_emoji=use_emoji, output=output)
+        return
+
     try:
         display_module = import_module("IPython.display")
     except ImportError:
@@ -129,8 +138,14 @@ def print_board(board: Board, *, use_emoji: bool | None = None) -> None:
     _write_board_text(board, use_emoji=use_emoji)
 
 
-def _write_board_text(board: Board, *, use_emoji: bool | None = None) -> None:
-    sys.stdout.write(f"{board_to_str(board, use_emoji=use_emoji)}\n")
+def _write_board_text(
+    board: Board,
+    *,
+    use_emoji: bool | None = None,
+    output: TextIO | None = None,
+) -> None:
+    target = sys.stdout if output is None else output
+    target.write(f"{board_to_str(board, use_emoji=use_emoji)}\n")
 
 
 def _should_use_emoji(*, use_emoji: bool | None) -> bool:
