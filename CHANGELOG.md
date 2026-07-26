@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The project follows semantic versioning where practical. While the major
 version is `0`, public APIs may change between minor releases.
 
+## 0.2.5 - 2026-07-26
+
+- Route `ManualPlayer` board rendering through `display_board()` so manual CLI
+  play uses the recommended public board display API.
+- Add `display_board(..., output=...)` for explicit text output streams.
+- Update development dependencies: `mypy` 2.1.0 to 2.3.0 and `ruff` 0.15.20
+  to 0.15.22.
+
 ## 0.2.4 - 2026-07-17
 
 - Add a default two-second per-move timeout to `OthelloGame`; timed-out players
