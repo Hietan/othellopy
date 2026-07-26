@@ -251,9 +251,10 @@ Cell.WHITE
 `board_to_html(board: Board, *, use_emoji: bool | None = None) -> str`
 : Converts a board to a fixed-cell HTML table for notebook display.
 
-`display_board(board: Board, *, use_emoji: bool | None = None) -> None`
+`display_board(board: Board, *, use_emoji: bool | None = None, output: TextIO | None = None) -> None`
 : Displays a board as HTML in IPython notebooks, falling back to text output in
-  terminals. Prefer this for examples and student code.
+  terminals. When `output` is provided, writes text output to that stream.
+  Prefer this for examples and student code.
 
 `print_board(board: Board, *, use_emoji: bool | None = None) -> None`
 : Prints a readable board as text. Kept for compatibility and explicit text
